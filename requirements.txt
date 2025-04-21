@@ -103,3 +103,12 @@ webargs==8.4.0
     # via apifairy
 werkzeug==3.0.3
     # via flask
+flask-migrate==4.0.0
+    # via wiseekr-api (/home/miguel/Documents/dev/wiseekr-api/pyproject.toml)
+    # via alembic
+    # via flask-sqlalchemy
+    # via wiseekr-api (/home/miguel/Documents/dev/wiseekr-api/pyproject.toml)
+pymysql==1.1.0
+    # via wiseekr-api (/home/miguel/Documents/dev/wiseekr-api/pyproject.toml)
+    # via flask-sqlalchemy
+    # via wiseekr-api (/home/miguel/Documents/dev/wiseekr-api/pyproject.toml)
