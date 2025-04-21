@@ -163,3 +163,6 @@ docker network rm $(docker network ls -q | grep -v "bridge\|host\|none") 2>/dev/
 # check
 docker system prune -a --volumes -f  # falls noch Reste da sind
 docker info                         # check, ob alles leer ist
+
+# FRONTEND-changes saving
+npm run deploy

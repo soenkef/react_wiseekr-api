@@ -1,28 +1,21 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, request, jsonify
 from flask_httpauth import HTTPTokenAuth
 import subprocess
 
-from api.auth import token_auth  # dein bestehendes Auth-System
+from api.auth import token_auth
+from apifairy import authenticate
 
 scan = Blueprint('scan', __name__)
 auth = HTTPTokenAuth(scheme='Bearer')
 
 @scan.route('/scan', methods=['POST'])
-@token_auth.login_required
+@authenticate(token_auth)
 def perform_scan():
+    data = request.get_json()
+    command = data.get('command', '')
+
     try:
-        result = subprocess.run(
-            ['whoami'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True
-        )
-        output = result.stdout.decode().strip()
-        return jsonify({"user": output})
-    except subprocess.CalledProcessError as e:
-        return jsonify({
-            "error": "Subprocess failed",
-            "stdout": e.stdout.decode() if e.stdout else "",
-            "stderr": e.stderr.decode() if e.stderr else "",
-            "exit_code": e.returncode
-        }), 500
+        result = subprocess.run(command.split(), capture_output=True, text=True, timeout=5)
+        return jsonify({"output": result.stdout.strip()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
