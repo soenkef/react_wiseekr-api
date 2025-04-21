@@ -92,3 +92,6 @@ Preferences, go to "Sharing" and uncheck "AirPlay Receiver".
     - If you are running wiseekr API with Python, start the server with the
     command `flask run --port=4000`.
 # react_wiseekr-api
+
+# REACT WISEEKR
+## https://github.com/soenkef/react_wiseekr
