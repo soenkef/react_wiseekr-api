@@ -133,3 +133,33 @@ flask db upgrade
 # REACT WISEEKR
 ## https://github.com/soenkef/react_wiseekr
 
+## docker-added mariadb to docker-compose.yml in wiseekr-api .env
+DATABASE_URL='mysql+pymysql://wiseekr:wiseekr654#@db/wiseekr'
+
+## docker tabularasa
+# Stoppe und entferne alle laufenden Container
+docker ps -aq | xargs -r docker stop
+docker ps -aq | xargs -r docker rm -f
+
+# Entferne alle Images
+docker images -aq | xargs -r docker rmi -f
+
+# Entferne alle Volumes
+docker volume ls -q | xargs -r docker volume rm -f
+
+# Entferne alle Netzwerke (außer default, bridge, host)
+docker network ls -q | xargs -r docker network rm
+
+# Optional: auch Docker Compose-Projekte aufräumen (falls nicht schon durch obiges erledigt)
+docker compose down -v --remove-orphans
+
+## oneliner
+docker stop $(docker ps -aq) 2>/dev/null && \
+docker rm -f $(docker ps -aq) 2>/dev/null && \
+docker rmi -f $(docker images -aq) 2>/dev/null && \
+docker volume rm -f $(docker volume ls -q) 2>/dev/null && \
+docker network rm $(docker network ls -q | grep -v "bridge\|host\|none") 2>/dev/null
+
+# check
+docker system prune -a --volumes -f  # falls noch Reste da sind
+docker info                         # check, ob alles leer ist
