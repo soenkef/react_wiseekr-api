@@ -5,13 +5,17 @@ from flask_cors import CORS
 from flask_mail import Mail
 from apifairy import APIFairy
 from config import Config
+from flask_migrate import Migrate
 
+# Deine bestehenden Initialisierungen
 db = Alchemical()
 ma = Marshmallow()
 cors = CORS()
 mail = Mail()
 apifairy = APIFairy()
 
+# Migrate-Objekt erstellen
+migrate = Migrate()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -21,6 +25,8 @@ def create_app(config_class=Config):
     from api import models
     db.init_app(app)
     ma.init_app(app)
+    migrate.init_app(app, db)  # Flask-Migrate initialisieren
+
     if app.config['USE_CORS']:  # pragma: no branch
         cors.init_app(app)
     mail.init_app(app)

@@ -232,3 +232,85 @@ class Post(Updateable, Model):
     @property
     def url(self):
         return url_for('posts.get', id=self.id)
+    
+
+''' BSSID, First time seen, Last time seen, channel, Speed, Privacy, Cipher, Authentication, Power, # beacons, # IV, LAN IP, ID-length, ESSID, Key '''
+class Scan(Updateable, Model):
+    __tablename__ = 'scans'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    timestamp: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow)
+    description: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+    
+    scan_accesspoints: so.WriteOnlyMapped['ScanAccessPoint'] = so.relationship(
+        back_populates='scan', cascade='all, delete-orphan')
+    scan_stations: so.WriteOnlyMapped['ScanStation'] = so.relationship(
+        back_populates='scan', cascade='all, delete-orphan')
+
+
+
+class AccessPoint(Updateable, Model):
+    __tablename__ = 'access_points'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    bssid: so.Mapped[str] = so.mapped_column(sa.String(17), unique=True, index=True)
+    essid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
+    
+    scans: so.WriteOnlyMapped['ScanAccessPoint'] = so.relationship(
+        back_populates='access_point', cascade='all, delete-orphan')
+
+
+    def __repr__(self):
+        return f'<AccessPoint {self.bssid} - {self.essid}>'
+    
+class ScanAccessPoint(Updateable, Model):
+    __tablename__ = 'scan_access_points'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    scan_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('scans.id'))
+    access_point_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('access_points.id'))
+
+    scan: so.Mapped['Scan'] = so.relationship(back_populates='scan_accesspoints')
+    access_point: so.Mapped['AccessPoint'] = so.relationship(back_populates='scans')
+
+    first_seen: so.Mapped[datetime]
+    last_seen: so.Mapped[datetime]
+    channel: so.Mapped[int]
+    speed: so.Mapped[int]
+    privacy: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
+    cipher: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
+    authentication: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
+    power: so.Mapped[int]
+    beacons: so.Mapped[int]
+    iv: so.Mapped[int]
+    lan_ip: so.Mapped[Optional[str]] = so.mapped_column(sa.String(45))
+    id_length: so.Mapped[int]
+    key: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+
+class Station(Updateable, Model):
+    __tablename__ = 'stations'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    mac: so.Mapped[str] = so.mapped_column(sa.String(17), unique=True, index=True)
+
+    scans: so.WriteOnlyMapped['ScanStation'] = so.relationship(
+        back_populates='station', cascade='all, delete-orphan')
+
+class ScanStation(Updateable, Model):
+    __tablename__ = 'scan_stations'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    scan_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('scans.id'))
+    station_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('stations.id'))
+
+    scan: so.Mapped['Scan'] = so.relationship(back_populates='scan_stations')
+    station: so.Mapped['Station'] = so.relationship(back_populates='scans')
+
+    first_seen: so.Mapped[datetime]
+    last_seen: so.Mapped[datetime]
+    power: so.Mapped[int]
+    packets: so.Mapped[int]
+    bssid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(17))
+    probed_essids: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
+
+

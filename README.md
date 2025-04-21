@@ -93,5 +93,43 @@ Preferences, go to "Sharing" and uncheck "AirPlay Receiver".
     command `flask run --port=4000`.
 # react_wiseekr-api
 
+# Updated Database
+## create manage.py in root
+from flask.cli import FlaskGroup
+from api.app import create_app, db
+from flask_migrate import MigrateCommand
+
+app = create_app()
+cli = FlaskGroup(app)
+
+### Migrate-Befehle hinzufügen
+cli.add_command('db', MigrateCommand)
+
+if __name__ == '__main__':
+    cli()
+
+## export Environment variables
+export FLASK_APP=app:create_app
+export FLASK_ENV=development
+
+## remove migrations folder
+rm -rf migrations/
+
+## eventually must remove alembic_version table from database table
+DROP TABLE alembic_version;
+
+## reinit and build database
+flask db init
+flask db migrate -m "initial schema after reset"
+flask db upgrade
+
+### if database already exists
+rm -r migrations/
+flask db init
+flask db stamp head
+flask db migrate -m "initial schema after reset"
+flask db upgrade
+
 # REACT WISEEKR
 ## https://github.com/soenkef/react_wiseekr
+
