@@ -43,6 +43,10 @@ def create_app(config_class=Config):
     app.register_blueprint(posts, url_prefix='/api')
     from api.fake import fake
     app.register_blueprint(fake)
+    from api.scan import scan  
+    app.register_blueprint(scan, url_prefix='/api')
+    from api.scan_stream import scan_stream
+    app.register_blueprint(scan_stream, url_prefix='/api')
 
     # define the shell context
     @app.shell_context_processor

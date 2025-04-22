@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "⏳ Warte auf die Datenbank (db:3306)..."
+echo "⏳ Warte auf die Docker Datenbank (db:3306)..."
 /wait-for-it.sh db:3306 --timeout=60 --strict -- echo "✅ Datenbank ist bereit."
 
 # Flask-Umgebung

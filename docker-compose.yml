@@ -11,7 +11,8 @@ services:
         target: /data
     env_file: .env
     environment:
-      DATABASE_URL: sqlite:////data/db.sqlite
+      #DATABASE_URL: sqlite:////data/db.sqlite
+      DATABASE_URL: mysql+pymysql://wiseekr:wiseekr654321!@localhost:3307/wiseekr
     restart: always
 volumes:
   data:
