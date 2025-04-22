@@ -190,3 +190,6 @@ apt  install network-manager
 
 # netstat install
 sudo apt install net-tools
+
+# steps for installation on ubuntu virtualbox machine
+sudo apt install openssh-server
