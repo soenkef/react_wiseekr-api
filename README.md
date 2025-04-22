@@ -133,6 +133,24 @@ flask db upgrade
 # REACT WISEEKR
 ## https://github.com/soenkef/react_wiseekr
 
+# install docker and docker-compose
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+
 ## docker-added mariadb to docker-compose.yml in wiseekr-api .env
 DATABASE_URL='mysql+pymysql://wiseekr:wiseekr654#@db/wiseekr'
 
@@ -166,3 +184,9 @@ docker info                         # check, ob alles leer ist
 
 # FRONTEND-changes saving
 npm run deploy
+
+# network manager tools - to imitate airodump for output checks
+apt  install network-manager
+
+# netstat install
+sudo apt install net-tools
