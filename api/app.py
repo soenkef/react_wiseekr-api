@@ -47,6 +47,8 @@ def create_app(config_class=Config):
     app.register_blueprint(scan, url_prefix='/api')
     from api.scan_stream import scan_stream
     app.register_blueprint(scan_stream, url_prefix='/api')
+    from .scan_runtime import scan_runtime
+    app.register_blueprint(scan_runtime, url_prefix='/api')
 
     # define the shell context
     @app.shell_context_processor
