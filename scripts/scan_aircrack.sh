@@ -33,7 +33,7 @@ fi
 
 # Starte den Scan
 echo "[i] Starte airodump-ng für $DURATION Sekunden..."
-timeout "$DURATION" airodump-ng --write-interval 1 --output-format csv -w "$SCANS_DIR/$FILENAME" "$INTERFACE"
+timeout "$DURATION" airodump-ng --band abg --write-interval 1 --output-format csv -w "$SCANS_DIR/$FILENAME" "$INTERFACE"
 
 # Gib Pfad zurück
 if [ -f "$FULL_PATH" ]; then
