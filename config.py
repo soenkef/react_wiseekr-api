@@ -75,3 +75,5 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER',
                                        'donotreply@wiseekr.example.com')
+
+    USE_CORS = True

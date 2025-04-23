@@ -28,7 +28,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)  # Flask-Migrate initialisieren
 
     if app.config['USE_CORS']:  # pragma: no branch
-        cors.init_app(app)
+        cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
     mail.init_app(app)
     apifairy.init_app(app)
 
@@ -43,12 +43,14 @@ def create_app(config_class=Config):
     app.register_blueprint(posts, url_prefix='/api')
     from api.fake import fake
     app.register_blueprint(fake)
-    from api.scan import scan  
+    from api.scan import scan
     app.register_blueprint(scan, url_prefix='/api')
     from api.scan_stream import scan_stream
     app.register_blueprint(scan_stream, url_prefix='/api')
     from .scan_runtime import scan_runtime
     app.register_blueprint(scan_runtime, url_prefix='/api')
+    from api.scan_import import scan_data
+    app.register_blueprint(scan_data, url_prefix='/api')
 
     # define the shell context
     @app.shell_context_processor

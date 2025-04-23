@@ -241,6 +241,7 @@ class Scan(Updateable, Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     timestamp: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow)
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+    filename: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32))  # NEU
     
     scan_accesspoints: so.WriteOnlyMapped['ScanAccessPoint'] = so.relationship(
         back_populates='scan', cascade='all, delete-orphan')
@@ -255,6 +256,8 @@ class AccessPoint(Updateable, Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     bssid: so.Mapped[str] = so.mapped_column(sa.String(17), unique=True, index=True)
     essid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
+    counter: so.Mapped[int] = so.mapped_column(default=0)  # NEU
+    cracked_password: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))  # NEU
     
     scans: so.WriteOnlyMapped['ScanAccessPoint'] = so.relationship(
         back_populates='access_point', cascade='all, delete-orphan')
@@ -314,3 +317,16 @@ class ScanStation(Updateable, Model):
     probed_essids: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
 
 
+from sqlalchemy import event
+
+@event.listens_for(ScanAccessPoint, 'after_insert')
+def increment_access_point_counter(mapper, connection, target):
+    # Hole die Tabelle
+    access_points_table = AccessPoint.__table__
+
+    # Erhöhe counter um 1
+    connection.execute(
+        access_points_table.update()
+        .where(access_points_table.c.id == target.access_point_id)
+        .values(counter=access_points_table.c.counter + 1)
+    )
