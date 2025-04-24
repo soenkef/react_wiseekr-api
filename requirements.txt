@@ -46,3 +46,4 @@ webargs==8.4.0
 Werkzeug==3.0.3
 zope.event==5.0
 zope.interface==7.2
+netifaces

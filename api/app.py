@@ -51,6 +51,8 @@ def create_app(config_class=Config):
     app.register_blueprint(scan_runtime, url_prefix='/api')
     from api.scan_import import scan_data
     app.register_blueprint(scan_data, url_prefix='/api')
+    from api.scan_deauth import scan_deauth
+    app.register_blueprint(scan_deauth, url_prefix="/api")
 
     # define the shell context
     @app.shell_context_processor

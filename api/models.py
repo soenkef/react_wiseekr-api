@@ -248,6 +248,8 @@ class Scan(Updateable, Model):
     scan_stations: so.WriteOnlyMapped['ScanStation'] = so.relationship(
         back_populates='scan', cascade='all, delete-orphan')
 
+    # ✅ Gegenstück zur AccessPoint.scan
+    access_points: so.Mapped[list['AccessPoint']] = so.relationship(back_populates='scan')
 
 
 class AccessPoint(Updateable, Model):
@@ -256,15 +258,21 @@ class AccessPoint(Updateable, Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     bssid: so.Mapped[str] = so.mapped_column(sa.String(17), unique=True, index=True)
     essid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
-    counter: so.Mapped[int] = so.mapped_column(default=0)  # NEU
-    cracked_password: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))  # NEU
-    
-    scans: so.WriteOnlyMapped['ScanAccessPoint'] = so.relationship(
-        back_populates='access_point', cascade='all, delete-orphan')
+    counter: so.Mapped[int] = so.mapped_column(default=0)
+    cracked_password: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
 
+    # ✅ Neue 1:n-Verknüpfung zu Scan
+    scan_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey('scans.id'), index=True)
+    scan: so.Mapped['Scan'] = so.relationship(back_populates='access_points')
+
+    # (optional) m:n-Verknüpfung beibehalten
+    scans: so.WriteOnlyMapped['ScanAccessPoint'] = so.relationship(
+        back_populates='access_point', cascade='all, delete-orphan'
+    )
 
     def __repr__(self):
         return f'<AccessPoint {self.bssid} - {self.essid}>'
+
     
 class ScanAccessPoint(Updateable, Model):
     __tablename__ = 'scan_access_points'
@@ -330,3 +338,17 @@ def increment_access_point_counter(mapper, connection, target):
         .where(access_points_table.c.id == target.access_point_id)
         .values(counter=access_points_table.c.counter + 1)
     )
+
+class DeauthAction(Updateable, Model):
+    __tablename__ = 'deauth_actions'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    scan_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey('scans.id'))
+    mac: so.Mapped[str] = so.mapped_column(sa.String(17))
+    is_client: so.Mapped[bool] = so.mapped_column(default=False)
+    started_at: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow)
+    duration: so.Mapped[int]
+    packets: so.Mapped[int]
+    result_file: so.Mapped[Optional[str]] = so.mapped_column(sa.String(255))
+    success: so.Mapped[bool] = so.mapped_column(default=False)
+
