@@ -3,9 +3,16 @@ import csv
 from datetime import datetime
 from api.app import db
 from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation
+import requests
+from dotenv import load_dotenv
+
+# Lade Umgebungsvariablen aus der .env Datei
+load_dotenv()
+API_KEY = os.getenv("MACADDRESS_API_TOKEN")
+MAC_VENDORS_API_URL = "https://api.macvendors.com/"
+
 
 SCAN_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '../scans'))
-
 
 def parse_datetime(raw):
     return datetime.strptime(raw.strip(), '%Y-%m-%d %H:%M:%S') if raw.strip() else None
@@ -19,8 +26,17 @@ def import_all_scans():
             import_single_scan(path, filename)
     db.session.commit()
 
+def get_vendor_and_camera_info(mac_address):
+    # Abfrage des Herstellers über die API (z.B. macvendors)
+    try:
+        vendor = requests.get(f"{MAC_VENDORS_API_URL}/{mac_address}").text
+        # Hier können wir eine eigene Logik einbauen, um zu prüfen, ob es sich um eine Kamera handelt.
+        is_camera = "camera" in vendor.lower()  # Eine einfache Annahme, dass "camera" im Vendor-String vorkommt
+        return vendor, is_camera
+    except Exception as e:
+        return None, False  # Falls keine Information gefunden wird, keine Kamera
 
-def import_single_scan(filepath, filename, auto_commit=False):
+def import_single_scan(filepath, filename):
     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
         reader = csv.reader(f)
         lines = list(reader)
@@ -53,6 +69,11 @@ def import_single_scan(filepath, filename, auto_commit=False):
                 db.session.add(ap)
                 db.session.flush()
 
+            # Hersteller und Kameraerkennung
+            vendor, is_camera = get_vendor_and_camera_info(bssid)
+            ap.manufacturer = vendor
+            ap.is_camera = is_camera  # Setze den Wert für die Kameraerkennung
+
             sap = ScanAccessPoint(
                 scan_id=scan.id,
                 access_point_id=ap.id,
@@ -82,6 +103,11 @@ def import_single_scan(filepath, filename, auto_commit=False):
                 db.session.add(station)
                 db.session.flush()
 
+            # Hersteller und Kameraerkennung für Clients
+            vendor, is_camera = get_vendor_and_camera_info(mac)
+            station.manufacturer = vendor
+            station.is_camera = is_camera  # Setze den Wert für die Kameraerkennung
+
             sst = ScanStation(
                 scan_id=scan.id,
                 station_id=station.id,
@@ -94,8 +120,7 @@ def import_single_scan(filepath, filename, auto_commit=False):
             )
             db.session.add(sst)
 
-    if auto_commit:
-        db.session.commit()
+    db.session.commit()
 
 
 # --- API für das Frontend ---

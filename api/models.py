@@ -351,4 +351,3 @@ class DeauthAction(Updateable, Model):
     packets: so.Mapped[int]
     result_file: so.Mapped[Optional[str]] = so.mapped_column(sa.String(255))
     success: so.Mapped[bool] = so.mapped_column(default=False)
-
