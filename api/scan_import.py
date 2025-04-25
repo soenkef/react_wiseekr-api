@@ -122,7 +122,8 @@ def get_all_scans():
     return jsonify([{
         "id": s.id,
         "filename": s.filename,
-        "description": s.description
+        "description": s.description,
+        "created_at": s.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
     } for s in scans])
 
 
@@ -133,17 +134,13 @@ def get_scan_detail(scan_id):
     if not scan:
         return jsonify({'error': 'Scan not found'}), 404
 
-    aps = db.session.execute(
-        ScanAccessPoint.select()
-        .where(ScanAccessPoint.scan_id == scan_id)
-        .options(joinedload(ScanAccessPoint.access_point))
-    ).scalars().all()
+    aps = db.session.query(ScanAccessPoint).options(
+        joinedload(ScanAccessPoint.access_point)
+    ).filter_by(scan_id=scan_id).all()
 
-    stations = db.session.execute(
-        ScanStation.select()
-        .where(ScanStation.scan_id == scan_id)
-        .options(joinedload(ScanStation.station))
-    ).scalars().all()
+    stations = db.session.query(ScanStation).options(
+        joinedload(ScanStation.station)
+    ).filter_by(scan_id=scan_id).all()
 
     ap_map = {}
     for ap in aps:
@@ -151,6 +148,18 @@ def get_scan_detail(scan_id):
             "bssid": ap.access_point.bssid,
             "essid": ap.access_point.essid,
             "channel": ap.channel,
+            "first_seen": ap.first_seen,
+            "last_seen": ap.last_seen,
+            "speed": ap.speed,
+            "privacy": ap.privacy,
+            "cipher": ap.cipher,
+            "authentication": ap.authentication,
+            "power": ap.power,
+            "beacons": ap.beacons,
+            "iv": ap.iv,
+            "lan_ip": ap.lan_ip,
+            "id_length": ap.id_length,
+            "key": ap.key,
             "clients": []
         }
 
