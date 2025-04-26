@@ -206,6 +206,7 @@ def get_scan_detail(scan_id):
         "id": scan.id,
         "filename": scan.filename,
         "description": scan.description,
+        "created_at": scan.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
         "access_points": list(ap_map.values()),
         "unlinked_clients": unlinked
     })

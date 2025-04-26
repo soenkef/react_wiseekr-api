@@ -55,6 +55,8 @@ def create_app(config_class=Config):
     app.register_blueprint(scan_deauth, url_prefix="/api")
     from api.clear_database import clear_db
     app.register_blueprint(clear_db, url_prefix="/api")
+    from api.download_file import download_file_bp
+    app.register_blueprint(download_file_bp, url_prefix='/api')
 
     # define the shell context
     @app.shell_context_processor
