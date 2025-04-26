@@ -11,6 +11,7 @@ from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation
 from netaddr import EUI, NotRegisteredError
 from dotenv import load_dotenv
 from sqlalchemy.orm import joinedload
+from api.utils.oui import OUI_MAP
 
 # Lade Umgebungsvariablen (falls benötigt)
 load_dotenv()
@@ -25,13 +26,9 @@ def parse_datetime(raw: str) -> datetime | None:
 
 
 def get_vendor_and_camera_info(mac: str) -> tuple[str | None, bool]:
-    """
-    Bestimmt den Hersteller (Vendor) lokal anhand der OUI und erkennt, ob es eine Kamera ist.
-    """
-    try:
-        vendor = EUI(mac).oui.registration().org
-    except (NotRegisteredError, ValueError):
-        vendor = None
+    # normalisiere MAC für Lookup: 'AA:BB:CC:DD:EE:FF' → 'aa:bb:cc'
+    prefix = mac.lower()[0:8]
+    vendor = OUI_MAP.get(prefix)
     is_camera = False
     if vendor:
         is_camera = 'camera' in vendor.lower()
