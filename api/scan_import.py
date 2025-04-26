@@ -10,6 +10,7 @@ from api.app import db
 from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation
 from netaddr import EUI, NotRegisteredError
 from dotenv import load_dotenv
+from sqlalchemy.orm import joinedload
 
 # Lade Umgebungsvariablen (falls benötigt)
 load_dotenv()
@@ -79,17 +80,33 @@ def get_scan_detail(scan_id):
         ap_map[ap.access_point.bssid] = {
             "bssid": ap.access_point.bssid,
             "essid": ap.access_point.essid,
-            "vendor": ap.access_point.manufacturer,
-            "is_camera": ap.access_point.is_camera,
-            # ... weitere Felder ...
+            "channel": ap.channel,
+            "first_seen": ap.first_seen,
+            "last_seen": ap.last_seen,
+            "speed": ap.speed,
+            "privacy": ap.privacy,
+            "cipher": ap.cipher,
+            "authentication": ap.authentication,
+            "power": ap.power,
+            "beacons": ap.beacons,
+            "iv": ap.iv,
+            "lan_ip": ap.lan_ip,
+            "id_length": ap.id_length,
+            "key": ap.key,
+            "clients": []
         }
+
     unlinked = []
     for st in stations:
         client = {
             "mac": st.station.mac,
             "vendor": st.station.manufacturer,
             "is_camera": st.station.is_camera,
-            # ... weitere Felder ...
+            "mac": st.station.mac,
+            "power": st.power,
+            "first_seen": st.first_seen,
+            "last_seen": st.last_seen,
+            "probed_essids": st.probed_essids
         }
         if st.bssid and st.bssid in ap_map:
             ap_map[st.bssid]["clients"].append(client)
