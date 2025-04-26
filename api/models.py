@@ -258,6 +258,8 @@ class AccessPoint(Updateable, Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     bssid: so.Mapped[str] = so.mapped_column(sa.String(17), unique=True, index=True)
     essid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
+    manufacturer: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
+    is_camera: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
     counter: so.Mapped[int] = so.mapped_column(default=0)
     cracked_password: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
 
@@ -303,6 +305,8 @@ class Station(Updateable, Model):
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     mac: so.Mapped[str] = so.mapped_column(sa.String(17), unique=True, index=True)
+    manufacturer: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
+    is_camera: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
 
     scans: so.WriteOnlyMapped['ScanStation'] = so.relationship(
         back_populates='station', cascade='all, delete-orphan')
