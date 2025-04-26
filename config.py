@@ -77,3 +77,11 @@ class Config:
                                        'donotreply@wiseekr.example.com')
 
     USE_CORS = True
+
+    # Secret
+    SUDO_SECRET = os.environ.get('SUDO_SECRET')
+
+    # MAC Address API
+    MAC_VENDORS_API_URL = os.environ.get('MAC_VENDORS_API_URL') or \
+        'https://api.macvendors.com/{mac_address}'
+    MACADDRESS_API_TOKEN = os.environ.get('MACADDRESS_API_TOKEN')
