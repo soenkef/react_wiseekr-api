@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 clear_db = Blueprint('clear_db', __name__)
 
-@clear_db.route('/clear-database', methods=['POST'])
+@clear_db.route('/clear_db', methods=['POST'])
 def clear_database():
     try:
         # Reihenfolge beachten wegen Foreign Key Constraints

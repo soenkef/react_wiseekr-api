@@ -8,12 +8,15 @@ export FLASK_APP=api.app:create_app
 export FLASK_ENV=development
 
 # Nur wenn keine Migration existiert
-if [ ! "$(ls -A migrations/versions 2>/dev/null)" ]; then
-  echo "⚙️  Erzeuge initiale Migration..."
-  flask db migrate -m "Initial"
-fi
+#if [ ! "$(ls -A migrations/versions 2>/dev/null)" ]; then
+#  echo "⚙️  Erzeuge initiale Migration..."
+#  flask db migrate -m "Initial"
+#fi
+flask db migrate -m "Autogen" || true
 
 echo "📦 Führe Migration aus..."
+flask db stamp head
+flask db migrate -m "Initial"
 flask db upgrade
 
 echo "🚀 Starte Gunicorn..."
