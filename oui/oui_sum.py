@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import requests
 import time
+import re
 from requests.exceptions import HTTPError
 
 # URLs der drei IEEE-Listen
@@ -10,10 +11,12 @@ URLS = {
     "MA-S": "https://standards-oui.ieee.org/oui36/oui36.txt"
 }
 
+# Regex für einzelne OUI-Einträge im 6-stelligen Hex-Format ohne Bereich
+OUI_ENTRY_RE = re.compile(r"^\s*([0-9A-F]{6})\s+\(base 16\)\s+(.*)$", re.IGNORECASE)
+
+
 def fetch_text(url: str) -> str:
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-    }
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
         resp = requests.get(url, timeout=10, headers=headers)
         resp.raise_for_status()
@@ -24,59 +27,55 @@ def fetch_text(url: str) -> str:
     except Exception as e:
         print(f"⚠️ Fehler beim Laden von {url}: {e}")
         return ""
-    return None
+
 
 def strip_header(text: str) -> str:
     """
-    Entfernt alles vor der ersten echten Eintragszeile,
-    damit beim Zusammenführen keine Duplikate von Kopfzeilen entstehen.
+    Entfernt alles vor der ersten Zeile mit '(base 16)'.
     """
     lines = text.splitlines()
     for i, line in enumerate(lines):
-        if "(base 16)" in line.lower():
+        if '(base 16)' in line.lower():
             return "\n".join(lines[i:])
     return text
 
+
 def main():
-    merged_lines = []
+    results = []
+    seen = set()
+
     for name, url in URLS.items():
         print(f"Lade {name} von {url} …")
-        time.sleep(1)  # um die Server nicht zu überlasten
+        time.sleep(1)
         content = fetch_text(url)
         if not content:
             continue
 
         body = strip_header(content).splitlines()
-        merged_lines.append(f"#### {name}")
 
-        seen_prefixes = set()
+        # Durchsuche jede Zeile und filtere nur 6-stellige Hex-OUI-Einträge (keine Bereiche)
         for line in body:
-            # Zeilen überspringen, die kein "(base 16)" enthalten
-            if "(base 16)" not in line.lower():
+            match = OUI_ENTRY_RE.match(line)
+            if not match:
                 continue
+            prefix = match.group(1).upper()
+            vendor = match.group(2).strip()
 
-            # Beispiel: "28-6F-B9   (base 16)   Nokia Shanghai Bell Co., Ltd."
-            # wir extrahieren "28-6F-B9" als prefix
-            parts = line.split("(base 16)")
-            prefix = parts[0].strip().lower().replace('-', ':')
-
-            if prefix in seen_prefixes:
+            if prefix in seen:
                 continue
-            seen_prefixes.add(prefix)
+            seen.add(prefix)
 
-            merged_lines.append(line)
+            results.append(f"{prefix}   (base 16)    {vendor}")
 
-        merged_lines.append("")  # Leerzeile zwischen Gruppen
-
-    if not merged_lines:
-        print("❌ Keine Datei erfolgreich geladen.")
+    if not results:
+        print("❌ Keine passenden OUI-Einträge gefunden.")
         return
 
-    out_path = "oui_combined.txt"
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(merged_lines))
+    out_file = "../api/data/oui_combined.txt"
+    with open(out_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(results))
 
-    print(f"✅ Fertig! {len(merged_lines)} Zeilen geschrieben nach {out_path}")
+    print(f"✅ Fertig! {len(results)} Einträge geschrieben nach {out_file}")
 
 
 if __name__ == "__main__":

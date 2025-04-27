@@ -42,7 +42,7 @@ def get_vendor_and_camera_info(mac: str) -> tuple[str | None, bool]:
                 is_camera = True
                 break
 
-    current_app.logger.debug(f"OUI lookup: prefix={prefix}, vendor={vendor!r}, is_camera={is_camera}")
+    #current_app.logger.debug(f"OUI lookup: prefix={prefix}, vendor={vendor!r}, is_camera={is_camera}")
     return vendor, is_camera
 
 
