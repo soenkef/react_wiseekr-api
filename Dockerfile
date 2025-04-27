@@ -19,6 +19,7 @@ RUN pip install -r requirements.txt
 COPY api api
 COPY scripts scripts
 COPY scans scans
+COPY oui oui
 
 COPY migrations migrations
 COPY alembic.ini alembic.ini

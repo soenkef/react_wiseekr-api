@@ -1,6 +1,6 @@
 import os
 
-OUI_FILE = os.path.join(os.path.dirname(__file__), '../data/oui.txt')
+OUI_FILE = os.path.join(os.path.dirname(__file__), '../data/oui_combined.txt')
 
 # In-Memory-Cache: Prefix → Vendor
 OUI_MAP: dict[str, str] = {}
