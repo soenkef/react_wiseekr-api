@@ -1,3 +1,5 @@
+# in oui liegt ein script, das die OUI-Listen von verschiedenen Anbietern zusammenführt
+
 # Liste aller bekannten Kamerahersteller
 camera_manufacturers = [
     "Abron", "ACESEE", "ACTi", "Acumen", "AirLive", "AKSILIUM", "AlfaVision", "AltCam", "Alteron", "AMATEK",
