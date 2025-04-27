@@ -12,6 +12,7 @@ from netaddr import EUI, NotRegisteredError
 from dotenv import load_dotenv
 from sqlalchemy.orm import joinedload
 from api.utils.oui import OUI_MAP
+from api.utils.camera import CAMERA_MANUFACTURERS
 
 # Lade Umgebungsvariablen (falls benötigt)
 load_dotenv()
@@ -26,13 +27,24 @@ def parse_datetime(raw: str) -> datetime | None:
 
 
 def get_vendor_and_camera_info(mac: str) -> tuple[str | None, bool]:
-    # normalisiere MAC für Lookup: 'AA:BB:CC:DD:EE:FF' → 'aa:bb:cc'
-    prefix = mac.lower()[0:8]
+    # raw hex ohne Trennzeichen: "286fb9"
+    mac_norm = mac.lower().replace('-', ':')
+    prefix = mac_norm.replace(':', '')[:6]
     vendor = OUI_MAP.get(prefix)
+
     is_camera = False
     if vendor:
-        is_camera = 'camera' in vendor.lower()
+        # prüfe, ob einer der Hersteller in vendor-String vorkommt
+        vendor_lower = vendor.lower()
+        for cam_name in CAMERA_MANUFACTURERS:
+            # wir matchen case-insensitive, und erlauben auch Substring
+            if cam_name.lower() in vendor_lower:
+                is_camera = True
+                break
+
+    current_app.logger.debug(f"OUI lookup: prefix={prefix}, vendor={vendor!r}, is_camera={is_camera}")
     return vendor, is_camera
+
 
 # Blueprint
 scan_data = Blueprint('scan_data', __name__)
@@ -77,6 +89,8 @@ def get_scan_detail(scan_id):
         ap_map[ap.access_point.bssid] = {
             "bssid": ap.access_point.bssid,
             "essid": ap.access_point.essid,
+            "vendor": ap.access_point.manufacturer,    
+            "is_camera": ap.access_point.is_camera,    
             "channel": ap.channel,
             "first_seen": ap.first_seen,
             "last_seen": ap.last_seen,
@@ -129,9 +143,10 @@ def import_all_scans():
         filename = os.path.basename(path)
         current_app.logger.info(f"📥 Importiere: {filename}")
 
+        # Neuen Scan erstellen
         scan = Scan(description=filename, filename=filename)
         db.session.add(scan)
-        db.session.flush()  # scan.id verfügbar
+        db.session.flush()  # damit scan.id verfügbar ist
 
         with open(path, newline='', encoding='utf-8', errors='ignore') as f:
             reader = csv.reader(f)
@@ -146,15 +161,24 @@ def import_all_scans():
                     continue
 
                 if ap_mode:
+                    # AccessPoint-Zeilen
                     if len(row) < 14 or header == 'bssid':
                         continue
+
                     bssid = row[0].strip()
                     vendor, is_cam = get_vendor_and_camera_info(bssid)
 
+                    # vorhandenen AP laden
                     ap = db.session.scalar(
                         AccessPoint.select().filter_by(bssid=bssid)
                     )
-                    if not ap:
+                    if ap:
+                        # UPDATE bestehender AccessPoint
+                        ap.manufacturer = vendor
+                        ap.is_camera    = is_cam
+                        db.session.flush()
+                    else:
+                        # NEUEN AccessPoint ANLEGEN
                         ap = AccessPoint(
                             bssid=bssid,
                             essid=row[13].strip() or None,
@@ -164,6 +188,7 @@ def import_all_scans():
                         db.session.add(ap)
                         db.session.flush()
 
+                    # für ScanAccessPoint bulk-mappen
                     all_sap.append({
                         'scan_id': scan.id,
                         'access_point_id': ap.id,
@@ -181,16 +206,25 @@ def import_all_scans():
                         'id_length': int(row[12] or 0),
                         'key': row[14].strip() or None
                     })
+
                 else:
+                    # Station-Zeilen
                     if len(row) < 6 or header == 'station mac':
                         continue
+
                     mac = row[0].strip()
                     vendor, is_cam = get_vendor_and_camera_info(mac)
 
                     station = db.session.scalar(
                         Station.select().filter_by(mac=mac)
                     )
-                    if not station:
+                    if station:
+                        # UPDATE bestehender Station
+                        station.manufacturer = vendor
+                        station.is_camera    = is_cam
+                        db.session.flush()
+                    else:
+                        # NEUE Station ANLEGEN
                         station = Station(
                             mac=mac,
                             manufacturer=vendor,
@@ -199,6 +233,7 @@ def import_all_scans():
                         db.session.add(station)
                         db.session.flush()
 
+                    # für ScanStation bulk-mappen
                     all_sst.append({
                         'scan_id': scan.id,
                         'station_id': station.id,
@@ -210,8 +245,11 @@ def import_all_scans():
                         'probed_essids': (', '.join(row[6:])).strip() or None
                     })
 
+    # Bulk-Inserts für die Verknüpfungstabellen
     if all_sap:
         db.session.bulk_insert_mappings(ScanAccessPoint, all_sap)
     if all_sst:
         db.session.bulk_insert_mappings(ScanStation, all_sst)
+
+    # EINMALIGES Commit aller Änderungen
     db.session.commit()
