@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "⏳ Warte auf die Docker Datenbank (db:3306)..."
-/wait-for-it.sh db:3306 --timeout=60 --strict -- echo "✅ Datenbank ist bereit."
+./wait-for-it.sh db:3306 --timeout=60 --strict -- echo "✅ Datenbank ist bereit."
 
 # Flask-Umgebung
 export FLASK_APP=api.app:create_app
@@ -12,6 +12,7 @@ export FLASK_ENV=development
 #  echo "⚙️  Erzeuge initiale Migration..."
 #  flask db migrate -m "Initial"
 #fi
+flask db init
 flask db migrate -m "Autogen" || true
 
 echo "📦 Führe Migration aus..."
