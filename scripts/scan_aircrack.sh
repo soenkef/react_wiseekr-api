@@ -1,11 +1,14 @@
 #!/bin/bash
 
-INTERFACE="wlan1"
+INTERFACE="wlan0"
 SCANS_DIR="scans"
 DURATION="$1"
+SECRET="$2"
 UUID=$(uuidgen)
 FILENAME="scan_$UUID"
 FULL_PATH="$SCANS_DIR/$FILENAME.csv"
+
+echo "Uebergebene Duration/timeout-Werte: " $DURATION
 
 # Stelle sicher, dass das Scan-Verzeichnis existiert
 mkdir -p "$SCANS_DIR"
@@ -26,14 +29,14 @@ fi
 MODE=$(iwconfig "$INTERFACE" 2>/dev/null | grep -o 'Mode:[^ ]*' | cut -d: -f2)
 if [ "$MODE" != "Monitor" ]; then
   echo "[i] Setze $INTERFACE in den Monitor-Modus..."
-  ip link set "$INTERFACE" down
-  iw "$INTERFACE" set monitor control
-  ip link set "$INTERFACE" up
+  echo $SECRET | sudo -S ip link set "$INTERFACE" down
+  echo $SECRET | sudo -S iw dev "$INTERFACE" set type monitor
+  echo $SECRET | sudo -S ip link set "$INTERFACE" up
 fi
 
 # Starte den Scan
 echo "[i] Starte airodump-ng für $DURATION Sekunden..."
-timeout "$DURATION" airodump-ng --band abg --write-interval 1 --output-format csv -w "$SCANS_DIR/$FILENAME" "$INTERFACE"
+echo $SECRET | sudo -S timeout $DURATION airodump-ng --band abg --write-interval 1 --output-format csv -w "$SCANS_DIR/$FILENAME" "$INTERFACE"
 
 # Gib Pfad zurück
 if [ -f "$FULL_PATH" ]; then

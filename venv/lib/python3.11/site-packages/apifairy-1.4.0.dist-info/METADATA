@@ -1,0 +1,41 @@
+Metadata-Version: 2.1
+Name: apifairy
+Version: 1.4.0
+Summary: A minimalistic API framework built on top of Flask, Marshmallow and friends.
+Author-email: Miguel Grinberg <miguel.grinberg@gmail.com>
+Project-URL: Homepage, https://github.com/miguelgrinberg/apifairy
+Project-URL: Bug Tracker, https://github.com/miguelgrinberg/apifairy/issues
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: flask >=1.1.0
+Requires-Dist: flask-marshmallow
+Requires-Dist: webargs >=8.3.0
+Requires-Dist: flask-httpauth >=4
+Requires-Dist: apispec >=4
+Provides-Extra: docs
+Requires-Dist: sphinx ; extra == 'docs'
+
+# APIFairy
+
+[![Build status](https://github.com/miguelgrinberg/apifairy/workflows/build/badge.svg)](https://github.com/miguelgrinberg/apifairy/actions) [![codecov](https://codecov.io/gh/miguelgrinberg/apifairy/branch/main/graph/badge.svg)](https://codecov.io/gh/miguelgrinberg/APIFairy)
+
+APIFairy is a minimalistic API framework built on top of Flask, and with the
+support of Marshmallow schemas. Using a familiar decorator syntax you can
+generate a live documentation site directly from your source code.
+
+Check out [Microblog-API](https://github.com/miguelgrinberg/microblog-api) to
+see APIFairy in action in a non-trivial project.
+
+![APIFairy example](docs/_static/apispec-example.png)
+
+Resources
+---------
+
+- [Documentation](http://apifairy.readthedocs.io/en/latest/)
+- [PyPI](https://pypi.python.org/pypi/APIFairy)
+- [Change Log](https://github.com/miguelgrinberg/APIFairy/blob/main/CHANGES.md)

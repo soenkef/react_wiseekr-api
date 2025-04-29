@@ -21,4 +21,4 @@ flask db migrate -m "Initial"
 flask db upgrade
 
 echo "🚀 Starte Gunicorn..."
-exec gunicorn -b :5000 --access-logfile - --error-logfile - wiseekr:app
+exec gunicorn -b :5000 --timeout 600 --access-logfile - --error-logfile - wiseekr:app

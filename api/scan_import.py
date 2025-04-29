@@ -135,16 +135,39 @@ def get_scan_detail(scan_id):
 
 # Import-Funktion mit Bulk-Inserts und lokalem Vendor-Lookup
 
-def import_all_scans():
-    files = glob.glob(os.path.join(SCAN_FOLDER, 'scan_*.csv'))
+def import_all_scans(description=None, duration=None, location=None):
+    print("Duration: " + str(duration))
+    print("Importiere alle Scans...")
+    
+    processed = {
+        fname for (fname,) 
+        in db.session.query(Scan.filename).all()
+        if fname is not None
+    }
+    
     all_sap, all_sst = [], []
 
+    files = glob.glob(os.path.join(SCAN_FOLDER, 'scan_*.csv'))
     for path in files:
         filename = os.path.basename(path)
-        current_app.logger.info(f"📥 Importiere: {filename}")
+        if filename in processed:
+            current_app.logger.info(f"🚀 Überspringe bereits importierte Datei: {filename}")
+            continue
 
         # Neuen Scan erstellen
-        scan = Scan(description=filename, filename=filename)
+        # Metadaten bauen
+        scan_meta = {
+            'filename': filename,
+            # description: payload oder Dateiname
+            'description': description if description is not None else filename,
+            'location': location if location is not None else 'unknown',
+            'timestamp': datetime.now()
+        }
+        # optional: name, location, duration
+        if duration is not None: scan_meta['duration'] = duration
+
+        # Neuen Scan erstellen
+        scan = Scan(**scan_meta)
         db.session.add(scan)
         db.session.flush()  # damit scan.id verfügbar ist
 

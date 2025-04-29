@@ -240,6 +240,8 @@ class Scan(Updateable, Model):
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     timestamp: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow)
+    duration: so.Mapped[int] = so.mapped_column(default=0)
+    location: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
     filename: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32))  # NEU
     

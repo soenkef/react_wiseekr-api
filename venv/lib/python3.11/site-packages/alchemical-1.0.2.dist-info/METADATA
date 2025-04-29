@@ -1,0 +1,29 @@
+Metadata-Version: 2.1
+Name: alchemical
+Version: 1.0.2
+Summary: Modern SQLAlchemy simplified
+Author-email: Miguel Grinberg <miguel.grinberg@gmail.com>
+Project-URL: Homepage, https://github.com/miguelgrinberg/alchemical
+Project-URL: Bug Tracker, https://github.com/miguelgrinberg/alchemical/issues
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: sqlalchemy >=1.4.24
+Provides-Extra: docs
+Requires-Dist: sphinx ; extra == 'docs'
+
+# alchemical
+Modern SQLAlchemy simplified.
+
+[![Build status](https://github.com/miguelgrinberg/alchemical/workflows/build/badge.svg)](https://github.com/miguelgrinberg/alchemical/actions) [![codecov](https://codecov.io/gh/miguelgrinberg/alchemical/branch/main/graph/badge.svg)](https://codecov.io/gh/miguelgrinberg/alchemical)
+
+## Resources
+
+- [Documentation](http://alchemical.readthedocs.io/en/stable/)
+- [PyPI](https://pypi.python.org/pypi/alchemical)
+- [Change Log](https://github.com/miguelgrinberg/alchemical/blob/main/CHANGES.md)
+
