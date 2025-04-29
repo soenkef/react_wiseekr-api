@@ -25,6 +25,14 @@ if ! command -v airodump-ng &> /dev/null; then
   exit 2
 fi
 
+# kill airodump
+echo $SECRET | sudo -S killall airodump-ng
+echo $SECRET | sudo -S killall aircrack-ng
+echo $SECRET | sudo -S killall airmon-ng
+
+echo $SECRET | sudo -S airmon-ng check kill
+echo $SECRET | sudo -S airmon-ng stop "$INTERFACE"
+
 # Prüfe ob das Interface im Monitor-Modus ist
 MODE=$(iwconfig "$INTERFACE" 2>/dev/null | grep -o 'Mode:[^ ]*' | cut -d: -f2)
 if [ "$MODE" != "Monitor" ]; then
@@ -32,6 +40,7 @@ if [ "$MODE" != "Monitor" ]; then
   echo $SECRET | sudo -S ip link set "$INTERFACE" down
   echo $SECRET | sudo -S iw dev "$INTERFACE" set type monitor
   echo $SECRET | sudo -S ip link set "$INTERFACE" up
+  echo $SECRET | sudo -S iw dev "$INTERFACE" set power_save off
 fi
 
 # Starte den Scan

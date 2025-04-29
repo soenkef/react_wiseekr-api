@@ -1,0 +1,9 @@
+
+BSSID, First time seen, Last time seen, channel, Speed, Privacy, Cipher, Authentication, Power, # beacons, # IV, LAN IP, ID-length, ESSID, Key
+9C:32:CE:E1:CF:9E, 2025-04-29 17:14:25, 2025-04-29 17:14:25, -1,  -1, , ,   , -76,        0,        0,   0.  0.  0.  0,   0, , 
+
+Station MAC, First time seen, Last time seen, Power, # packets, BSSID, Probed ESSIDs
+9C:32:CE:E1:CF:9E, 2025-04-29 17:14:25, 2025-04-29 17:14:28, -53,        5, (not associated) ,BJNPSETUP
+74:40:BE:DC:6D:18, 2025-04-29 17:14:28, 2025-04-29 17:14:28, -55,        3, (not associated) ,gigacube_5G-3460
+0A:C0:12:6F:17:C8, 2025-04-29 17:14:28, 2025-04-29 17:14:28, -29,        2, (not associated) ,Warleberg
+
