@@ -51,8 +51,8 @@ def create_app(config_class=Config):
     app.register_blueprint(scan_runtime, url_prefix='/api')
     from api.scan_import import scan_data
     app.register_blueprint(scan_data, url_prefix='/api')
-    from api.scan_deauth import scan_deauth
-    app.register_blueprint(scan_deauth, url_prefix="/api")
+    from api.deauth import deauth_bp
+    app.register_blueprint(deauth_bp, url_prefix="/api")
     from api.clear_database import clear_db
     app.register_blueprint(clear_db, url_prefix="/api")
     from api.download_file import download_file_bp

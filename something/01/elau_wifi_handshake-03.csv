@@ -1,0 +1,11 @@
+
+BSSID, First time seen, Last time seen, channel, Speed, Privacy, Cipher, Authentication, Power, # beacons, # IV, LAN IP, ID-length, ESSID, Key
+C0:25:06:F8:54:CC, 2022-12-28 16:18:27, 2022-12-28 16:19:24,  1, 195, WPA2, CCMP, PSK, -79,       25,     1004,   0.  0.  0.  0,   7, Sputnik, 
+
+Station MAC, First time seen, Last time seen, Power, # packets, BSSID, Probed ESSIDs
+00:6E:07:9F:1A:51, 2022-12-28 16:18:27, 2022-12-28 16:19:23, -83,      168, C0:25:06:F8:54:CC,Sputnik
+00:6E:07:9B:54:5D, 2022-12-28 16:18:31, 2022-12-28 16:19:23, -83,      232, C0:25:06:F8:54:CC,Sputnik
+00:6E:07:A0:BD:65, 2022-12-28 16:18:31, 2022-12-28 16:18:50, -84,       71, C0:25:06:F8:54:CC,Sputnik
+84:4B:F5:26:52:1D, 2022-12-28 16:18:27, 2022-12-28 16:19:01, -83,       22, C0:25:06:F8:54:CC,
+00:6E:07:9B:BD:8F, 2022-12-28 16:18:31, 2022-12-28 16:18:52, -81,       65, C0:25:06:F8:54:CC,Sputnik
+

@@ -1,0 +1,11 @@
+
+BSSID, First time seen, Last time seen, channel, Speed, Privacy, Cipher, Authentication, Power, # beacons, # IV, LAN IP, ID-length, ESSID, Key
+02:16:78:68:9C:B8, 2025-04-29 22:09:36, 2025-04-29 22:09:46,  6, 130, WPA2 WPA, CCMP TKIP, PSK, -36,       89,     8266,   0.  0.  0.  0,   9, Warleberg, 
+
+Station MAC, First time seen, Last time seen, Power, # packets, BSSID, Probed ESSIDs
+3C:CD:57:2D:45:B9, 2025-04-29 22:09:36, 2025-04-29 22:09:46, -52,      114, 02:16:78:68:9C:B8,
+D8:FB:D6:C5:F7:2E, 2025-04-29 22:09:36, 2025-04-29 22:09:46, -29,       29, 02:16:78:68:9C:B8,
+0A:C0:12:6F:17:C8, 2025-04-29 22:09:38, 2025-04-29 22:09:46, -26,     8104, 02:16:78:68:9C:B8,
+58:B0:D4:C2:98:EE, 2025-04-29 22:09:37, 2025-04-29 22:09:37, -23,        1, 02:16:78:68:9C:B8,
+3C:CD:57:2D:48:5A, 2025-04-29 22:09:37, 2025-04-29 22:09:46, -21,      111, 02:16:78:68:9C:B8,
+

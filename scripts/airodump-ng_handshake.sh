@@ -14,7 +14,7 @@ if [ -z "$OUTPUT_FILE" ]; then
   OUTPUT_FILE="handshake_temp"
 fi
 
-OUTPUT_PATH="../scans/$OUTPUT_FILE"
+OUTPUT_PATH="../scans/$OUTPUT_FILE"handshake
 
 echo "📡 Starte airodump-ng für $DURATION Sekunden – Output: $OUTPUT_PATH"
-timeout "$DURATION" airodump-ng --write "$OUTPUT_PATH" --write-interval 1 --output-format cap "$INTERFACE"
+echo $SECRET | sudo -S timeout "$DURATION" airodump-ng --write "$OUTPUT_PATH" --write-interval 1 --output-format cap $INTERFACE
