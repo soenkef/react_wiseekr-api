@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 INTERFACE="$1"
 TARGET_MAC="$2"
 PACKETS="$3"

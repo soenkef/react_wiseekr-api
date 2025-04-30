@@ -139,12 +139,17 @@ def start_deauth_client():
             hs_cmd = [
                 'sudo', '-n', 'bash', airodump_script,
                 interface,
-                cap_output,
+                ap_mac,
+                client_mac,
                 str(duration),
-                secret
+                str(channel),
+                str(secret)
             ]
+            current_app.logger.info(f"🔌 Starte Deauth Client: {client_mac} vom AP {ap_mac} auf Kanal {channel} mit {packets} Paketen für {duration} Sekunden")
             current_app.logger.info(f"🔍 Starte Handshake-Mitschnitt: {' '.join(hs_cmd)}")
             handshake_proc = subprocess.Popen(hs_cmd)
+        
+        time.sleep(2)  # Warten auf Airodump-Start
 
         # 2) Deauth-Pakete senden
         deauth_cmd = [
@@ -154,9 +159,9 @@ def start_deauth_client():
             client_mac,
             str(channel),
             str(packets),
-            secret
+            str(secret)
         ]
-        current_app.logger.info(f"🔌 Deauth Client: {' '.join(deauth_cmd)}")
+        current_app.logger.info(f"🔌 Deauth Packets Client: {' '.join(deauth_cmd)}")
         deauth_proc = subprocess.Popen(deauth_cmd)
 
         # 3) auf Ende warten

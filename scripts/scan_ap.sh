@@ -12,7 +12,13 @@ if [ -z "$DURATION" ] || [ -z "$SECRET" ] || [ -z "$TARGET_BSSID" ]; then
   exit 1
 fi
 
-mkdir -p "$SCANS_DIR"
+# Prüfen, ob das Verzeichnis existiert, und bei Bedarf erstellen
+if [ ! -d "$SCANS_DIR" ]; then
+    mkdir -p "$SCANS_DIR"
+    echo "Verzeichnis »$SCANS_DIR« wurde erstellt."
+else
+    echo "Verzeichnis »$SCANS_DIR« existiert bereits."
+fi
 
 # 1) Interface prüfen und in Monitor-Modus schalten
 if ! ip link show "$INTERFACE" &>/dev/null; then
