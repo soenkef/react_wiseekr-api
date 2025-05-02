@@ -159,7 +159,7 @@ def start_deauth_client():
                 str(ap_mac),
                 str(duration),
                 str(channel),
-                str(secret)
+                str(secret), "&"
             ]
             current_app.logger.info(f"🔌 Starte Deauth Client: {client_mac} vom AP {ap_mac} auf Kanal {channel} mit {packets} Paketen für {duration} Sekunden")
             handshake_proc = subprocess.Popen(hs_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -176,7 +176,7 @@ def start_deauth_client():
             str(secret)
         ]
         current_app.logger.info(f"🔌 Deauth Packets Client: {' '.join(deauth_cmd)}")
-        deauth_proc = subprocess.Popen(deauth_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        deauth_proc = subprocess.Popen(deauth_cmd)#, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         # 3) auf Ende warten
         # deauth_proc.wait(timeout=duration + 5)

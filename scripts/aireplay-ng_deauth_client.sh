@@ -9,20 +9,14 @@ CHANNEL="$4"         # Kanal, z.B. 36
 PACKETS="${5:-100}"  # Anzahl Deauth-Pakete, Default 100
 SECRET="$6"          # sudo-Passwort
 
-echo "----------------------------------------"
-echo "----------------------------------------"
-echo "----------------------------------------"
-echo "----------------------------------------"
+
 echo "Interface: $INTERFACE"
 echo "AP MAC: $AP_MAC"
 echo "Client MAC: $CLIENT_MAC"
 echo "Channel: $CHANNEL"
 echo "Packets: $PACKETS"
 echo "Secret: $SECRET"
-echo "----------------------------------------"
-echo "----------------------------------------"
-echo "----------------------------------------"
-echo "----------------------------------------"
+
 
 if [[ -z "$INTERFACE" || -z "$AP_MAC" || -z "$CLIENT_MAC" || -z "$CHANNEL" || -z "$SECRET" ]]; then
 echo "Usage: $0  <ap_mac> <client_mac>  [packets] "
