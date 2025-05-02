@@ -8,6 +8,8 @@ CHANNEL="$5"
 SECRET="$6"
 SCANS_DIR="scans"
 
+echo "Filename: " $FILENAME
+
 if [ -z "$DURATION" ] || [ -z "$SECRET" ] || [ -z "$TARGET_BSSID" ]; then
   echo "Usage: $0 <duration> <sudo-secret> <bssid> [old-channel]"
   exit 1
@@ -22,7 +24,8 @@ if [ -z "$FILENAME" ]; then
   FILENAME="handshake_temp"
 fi
 
-OUTPUT_PATH="$SCANS_DIR/"
+FULL_PATH="$SCANS_DIR/$FILENAME"
+echo "FULL_PATH: " $FULL_PATH
 
 echo $SECRET | sudo -S airmon-ng check kill
 echo $SECRET | sudo -S airmon-ng stop "$INTERFACE"
@@ -36,20 +39,20 @@ if [ "$MODE" != "Monitor" ]; then
   echo $SECRET | sudo -S iw dev "$INTERFACE" set power_save off
 fi
 
-echo "📡 Starte airodump-ng für $DURATION Sekunden – Output: $OUTPUT_PATH"
+echo "📡 Starte airodump-ng für $DURATION Sekunden – Output: $FULL_PATH"
 
 # 3) Filter-Argumente für airodump-ng bauen
 BSSID_ARG="--bssid $TARGET_BSSID"
 CHAN_ARG=""
-if [ -n "$TARGET_CHANNEL" ]; then
-  CHAN_ARG="-c $TARGET_CHANNEL"
+if [ -n "$CHANNEL" ]; then
+  CHAN_ARG="-c $CHANNEL"
 fi
 
-FULL_PATH="$SCANS_DIR/$FILENAME"
-echo "FULL_PATH: " $FULL_PATH
+echo "[i] Setze Interface $INTERFACE auf Kanal $CHANNEL"
+echo "$SECRET" | sudo -S iwconfig "$INTERFACE" channel "$CHANNEL"
 
 
-echo $SECRET | sudo -S timeout $DURATION \
+echo $SECRET | sudo -S timeout "$DURATION" \
   airodump-ng --band abg $CHAN_ARG $BSSID_ARG \
     --write-interval 1 \
     -w "$FULL_PATH" "$INTERFACE"

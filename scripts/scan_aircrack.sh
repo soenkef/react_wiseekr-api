@@ -1,6 +1,9 @@
 #!/bin/bash
 
-INTERFACE="wlan0"
+
+set -x
+
+INTERFACE="wlan1"
 SCANS_DIR="scans"
 DURATION="$1"
 SECRET="$2"

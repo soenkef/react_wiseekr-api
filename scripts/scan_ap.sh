@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# this file do rescan of a specific AP
+
 INTERFACE="wlan0"
 SCANS_DIR="scans"
 DURATION="$1"              # 1. Parameter: Dauer in Sekunden

