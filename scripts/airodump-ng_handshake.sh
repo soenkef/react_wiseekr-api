@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 INTERFACE="$1"
 FILENAME="$2"
 TARGET_BSSID="$3"
@@ -22,7 +24,8 @@ if [ -z "$FILENAME" ]; then
   FILENAME="handshake_temp"
 fi
 
-OUTPUT_PATH="$SCANS_DIR/"
+FULL_PATH="$SCANS_DIR/$FILENAME"
+echo "FULL_PATH: " $FULL_PATH
 
 echo $SECRET | sudo -S airmon-ng check kill
 echo $SECRET | sudo -S airmon-ng stop "$INTERFACE"
@@ -36,13 +39,13 @@ if [ "$MODE" != "Monitor" ]; then
   echo $SECRET | sudo -S iw dev "$INTERFACE" set power_save off
 fi
 
-echo "📡 Starte airodump-ng für $DURATION Sekunden – Output: $OUTPUT_PATH"
+echo "📡 Starte airodump-ng für $DURATION Sekunden – Output: $FULL_PATH"
 
 # 3) Filter-Argumente für airodump-ng bauen
 BSSID_ARG="--bssid $TARGET_BSSID"
 CHAN_ARG=""
-if [ -n "$TARGET_CHANNEL" ]; then
-  CHAN_ARG="-c $TARGET_CHANNEL"
+if [ -n "$CHANNEL" ]; then
+  CHAN_ARG="-c $CHANNEL"
 fi
 
 FULL_PATH="$SCANS_DIR/$FILENAME"

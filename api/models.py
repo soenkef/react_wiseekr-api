@@ -264,6 +264,7 @@ class AccessPoint(Updateable, Model):
     is_camera: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
     counter: so.Mapped[int] = so.mapped_column(default=0)
     cracked_password: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
+    handshake_file: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
     # ✅ Neue 1:n-Verknüpfung zu Scan
     scan_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey('scans.id'), index=True)
@@ -357,3 +358,4 @@ class DeauthAction(Updateable, Model):
     packets: so.Mapped[int]
     result_file: so.Mapped[Optional[str]] = so.mapped_column(sa.String(255))
     success: so.Mapped[bool] = so.mapped_column(default=False)
+    handshake_file: so.Mapped[Optional[str]] = so.mapped_column(sa.String(255))

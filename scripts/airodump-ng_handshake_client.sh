@@ -8,7 +8,6 @@ CHANNEL="$5"
 SECRET="$6"
 SCANS_DIR="scans"
 
-echo "Filename: " $FILENAME
 
 if [ -z "$DURATION" ] || [ -z "$SECRET" ] || [ -z "$TARGET_BSSID" ]; then
   echo "Usage: $0 <duration> <sudo-secret> <bssid> [old-channel]"
