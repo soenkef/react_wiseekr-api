@@ -359,3 +359,21 @@ class DeauthAction(Updateable, Model):
     result_file: so.Mapped[Optional[str]] = so.mapped_column(sa.String(255))
     success: so.Mapped[bool] = so.mapped_column(default=False)
     handshake_file: so.Mapped[Optional[str]] = so.mapped_column(sa.String(255))
+
+
+class Setting(Updateable, Model):
+    __tablename__ = 'settings'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    ssid: so.Mapped[str] = so.mapped_column(sa.String(128), nullable=False)
+    password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+    force_connect: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
+    created_at: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow)
+
+    @property
+    def password(self):
+        raise AttributeError('password is write-only')
+
+    @password.setter
+    def password(self, pw: str):
+        self.password_hash = generate_password_hash(pw)

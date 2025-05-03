@@ -59,6 +59,8 @@ def create_app(config_class=Config):
     app.register_blueprint(download_file_bp, url_prefix='/api')
     from api.scan_ap_detail import scan_ap
     app.register_blueprint(scan_ap, url_prefix='/api')
+    from api.wifi_connect import wifi_connect
+    app.register_blueprint(wifi_connect, url_prefix='/api')
 
     # define the shell context
     @app.shell_context_processor

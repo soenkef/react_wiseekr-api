@@ -62,7 +62,7 @@ def scan_single_ap(scan_id):
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            timeout=int(duration) + 15
+            timeout=int(duration) + 1
         )
         scan_output = ''
     except Exception as e:

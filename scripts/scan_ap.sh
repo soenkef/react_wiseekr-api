@@ -1,8 +1,8 @@
 #!/bin/bash
-
+set -x
 # this file do rescan of a specific AP
 
-INTERFACE="wlan0"
+INTERFACE="wlan1"
 SCANS_DIR="scans"
 DURATION="$1"              # 1. Parameter: Dauer in Sekunden
 SECRET="$2"                # 2. Parameter: Dein sudo-Passwort
