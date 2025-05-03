@@ -8,7 +8,7 @@ from flask import Blueprint, jsonify, current_app, request
 from flask_cors import cross_origin
 from sqlalchemy.exc import OperationalError
 from api.app import db
-from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation
+from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation, DeauthAction
 from netaddr import EUI, NotRegisteredError
 from dotenv import load_dotenv
 from sqlalchemy.orm import joinedload
@@ -67,12 +67,12 @@ def get_all_scans():
 @scan_data.route('/scans/<int:scan_id>', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def get_scan_detail(scan_id):
-    # Lade den Scan in der DB
+    # 1) Lade den Scan
     scan = db.session.get(Scan, scan_id)
     if not scan:
         return jsonify({'error': 'Scan not found'}), 404
 
-    # Optional: gezielten Scan eines AccessPoint über BSSID und Channel ausführen
+    # 2) Optional: gezielten Einzel-Scan ausführen
     target_bssid = request.args.get('bssid')
     target_channel = request.args.get('channel')
     scan_output = None
@@ -93,7 +93,7 @@ def get_scan_detail(scan_id):
         except Exception as e:
             scan_output = f"Fehler beim gezielten Scan: {e}"
 
-    # Hole alle AccessPoints und Stationen aus dem Scan
+    # 3) Hole alle AccessPoints & Stations
     aps = db.session.query(ScanAccessPoint).options(
         joinedload(ScanAccessPoint.access_point)
     ).filter_by(scan_id=scan_id).all()
@@ -101,8 +101,12 @@ def get_scan_detail(scan_id):
         joinedload(ScanStation.station)
     ).filter_by(scan_id=scan_id).all()
 
-    # Mappe die Ergebnisse
-    ap_map = {}
+    # 4) Lade Deauth-Aktionen für Handshake-Dateien
+    actions = db.session.query(DeauthAction).filter_by(scan_id=scan_id).all()
+    deauth_map = {a.mac: a.result_file for a in actions if a.result_file}
+
+    # 5) Baue die Access Point–Map
+    ap_map: dict[str, dict] = {}
     for ap in aps:
         ap_map[ap.access_point.bssid] = {
             "bssid": ap.access_point.bssid,
@@ -122,9 +126,11 @@ def get_scan_detail(scan_id):
             "lan_ip": ap.lan_ip,
             "id_length": ap.id_length,
             "key": ap.key,
-            "clients": []
+            "clients": [],
+            "handshake_file": deauth_map.get(ap.access_point.bssid)
         }
 
+    # 6) Verteile die Stations auf APs oder unlinked
     unlinked = []
     for st in stations:
         client = {
@@ -134,14 +140,15 @@ def get_scan_detail(scan_id):
             "power": st.power,
             "first_seen": st.first_seen,
             "last_seen": st.last_seen,
-            "probed_essids": st.probed_essids
+            "probed_essids": st.probed_essids,
+            "handshake_file": deauth_map.get(st.station.mac)
         }
         if st.bssid and st.bssid in ap_map:
             ap_map[st.bssid]["clients"].append(client)
         else:
             unlinked.append(client)
 
-    # Baue die Antwort
+    # 7) Baue und sende die Antwort
     response = {
         "id": scan.id,
         "filename": scan.filename,
