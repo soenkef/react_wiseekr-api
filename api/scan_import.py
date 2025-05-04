@@ -8,7 +8,7 @@ from flask import Blueprint, jsonify, current_app, request
 from flask_cors import cross_origin
 from sqlalchemy.exc import OperationalError
 from api.app import db
-from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation, DeauthAction
+from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation, DeauthAction, Setting
 from dotenv import load_dotenv
 from sqlalchemy.orm import joinedload
 from api.utils.oui import OUI_MAP

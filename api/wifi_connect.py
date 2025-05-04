@@ -2,6 +2,7 @@ import subprocess
 from flask import Blueprint, jsonify, current_app, request
 from subprocess import TimeoutExpired
 import re
+import time
 
 from api.app import db
 from api.models import Setting
@@ -10,13 +11,34 @@ wifi_connect = Blueprint('wifi_connect', __name__)
 
 @wifi_connect.route('/wifi/scan', methods=['GET'])
 def scan_wifi():
-    """Scanne verfügbare WLAN-Netzwerke via nmcli und gib Liste zurück."""
+    """Scanne verfügbare WLAN-Netzwerke via nmcli und gib Liste zurück.
+    Prüfe vorher, ob NetworkManager läuft, und starte ihn bei Bedarf."""
     try:
+        # 0) Prüfen, ob NetworkManager aktiv ist
+        nm_status = subprocess.run(
+            ['sudo', '-n', 'systemctl', 'is-active', 'NetworkManager'],
+            capture_output=True, text=True, timeout=5
+        )
+        if nm_status.stdout.strip() != 'active':
+            current_app.logger.info("NetworkManager nicht aktiv, versuche zu starten…")
+            start_nm = subprocess.run(
+                ['sudo', '-n', 'systemctl', 'start', 'NetworkManager'],
+                capture_output=True, text=True, timeout=10
+            )
+            if start_nm.returncode != 0:
+                current_app.logger.error(f"Fehler beim Starten des NetworkManager: {start_nm.stderr}")
+                return jsonify({'error': 'NetworkManager konnte nicht gestartet werden.'}), 500
+            # optional kurz warten, bis Dienst wirklich hoch ist
+            time.sleep(2)
+
+        # 1) WLAN-Scan via nmcli
         result = subprocess.run(
             ['sudo', '-n', 'nmcli', '-t', '-f', 'SSID,SIGNAL', 'device', 'wifi', 'list'],
             capture_output=True, text=True, timeout=15
         )
         result.check_returncode()
+
+        # 2) Ausgabe parsen
         aps = []
         for line in result.stdout.splitlines():
             if ':' not in line:
@@ -25,12 +47,16 @@ def scan_wifi():
             if ssid:
                 strength = int(signal) if signal.isdigit() else 0
                 aps.append({'ssid': ssid, 'strength': strength})
+
         return jsonify(aps), 200
+
     except TimeoutExpired:
         return jsonify({'error': 'Scan hat zu lange gedauert und wurde abgebrochen.'}), 500
+
     except subprocess.CalledProcessError as e:
         current_app.logger.error(f"Scan fehlgeschlagen: {e.stderr or e.stdout}")
         return jsonify({'error': (e.stderr or e.stdout).strip()}), 500
+
     except Exception as e:
         current_app.logger.error(f"Unerwarteter Fehler beim Scan: {e}")
         return jsonify({'error': str(e)}), 500
@@ -72,7 +98,7 @@ def wifi_status():
                 target = setting.ssid
                 try:
                     # Erneut verbinden
-                    cmd = ['sudo', '-n', 'nmcli', 'device', 'wifi', 'connect', target]
+                    cmd = ['sudo', '-n', 'nmcli', 'device', 'wifi', 'connect', target, 'ifname', 'wlan0']
                     if setting.password_hash:
                         cmd += ['password', setting.password_hash]
                     subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=True)
@@ -155,7 +181,7 @@ def save_settings():
 
         # 3. NMCLI: Verbinden
         subprocess.run(
-            ['sudo', '-n', 'nmcli', 'device', 'wifi', 'connect', ssid] + (['password', password] if password else []),
+            ['sudo', '-n', 'nmcli', 'device', 'wifi', 'connect', ssid] + (['password', password] if password else []) + ['ifname', 'wlan0'],
             capture_output=True, text=True, timeout=30, check=True
         )
 
