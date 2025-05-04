@@ -9,7 +9,6 @@ from flask_cors import cross_origin
 from sqlalchemy.exc import OperationalError
 from api.app import db
 from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation, DeauthAction
-from netaddr import EUI, NotRegisteredError
 from dotenv import load_dotenv
 from sqlalchemy.orm import joinedload
 from api.utils.oui import OUI_MAP
@@ -278,3 +277,34 @@ def import_all_scans(description=None, duration=None, location=None):
         db.session.bulk_insert_mappings(ScanStation, all_sst)
 
     db.session.commit()
+
+
+@scan_data.route('/scans/<int:scan_id>', methods=['DELETE'])
+def delete_scan(scan_id):
+    """Löscht einen Scan mitsamt allen zugehörigen Daten und der CSV-Datei."""
+    scan = db.session.get(Scan, scan_id)
+    if not scan:
+        return jsonify({'error': 'Scan nicht gefunden'}), 404
+
+    try:
+        # 1) Alle zugehörigen DeauthAction-, ScanAccessPoint- und ScanStation-Einträge löschen
+        db.session.query(DeauthAction).filter_by(scan_id=scan_id).delete()
+        db.session.query(ScanAccessPoint).filter_by(scan_id=scan_id).delete()
+        db.session.query(ScanStation).filter_by(scan_id=scan_id).delete()
+
+        # 2) Scan-Eintrag löschen
+        filename = scan.filename
+        db.session.delete(scan)
+        db.session.commit()
+
+        # 3) CSV-Datei vom Filesystem entfernen
+        filepath = os.path.join(SCAN_FOLDER, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+        return jsonify({'message': 'Scan und alle zugehörigen Daten gelöscht.'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Fehler beim Löschen des Scans: {e}")
+        return jsonify({'error': str(e)}), 500

@@ -243,15 +243,22 @@ class Scan(Updateable, Model):
     duration: so.Mapped[int] = so.mapped_column(default=0)
     location: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
-    filename: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32))  # NEU
-    
-    scan_accesspoints: so.WriteOnlyMapped['ScanAccessPoint'] = so.relationship(
-        back_populates='scan', cascade='all, delete-orphan')
-    scan_stations: so.WriteOnlyMapped['ScanStation'] = so.relationship(
-        back_populates='scan', cascade='all, delete-orphan')
+    filename: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32))
 
-    # ✅ Gegenstück zur AccessPoint.scan
-    access_points: so.Mapped[list['AccessPoint']] = so.relationship(back_populates='scan')
+    scan_accesspoints: so.WriteOnlyMapped['ScanAccessPoint'] = so.relationship(
+        back_populates='scan',
+        cascade='all, delete-orphan',
+        passive_deletes=True
+    )
+    scan_stations: so.WriteOnlyMapped['ScanStation'] = so.relationship(
+        back_populates='scan',
+        cascade='all, delete-orphan',
+        passive_deletes=True
+    )
+
+    access_points: so.Mapped[list['AccessPoint']] = so.relationship(
+        back_populates='scan'
+    )
 
 
 class AccessPoint(Updateable, Model):
@@ -283,8 +290,12 @@ class ScanAccessPoint(Updateable, Model):
     __tablename__ = 'scan_access_points'
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    scan_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('scans.id'))
-    access_point_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('access_points.id'))
+    scan_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey('scans.id', ondelete='CASCADE')
+    )
+    access_point_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey('access_points.id', ondelete='CASCADE')
+    )
 
     scan: so.Mapped['Scan'] = so.relationship(back_populates='scan_accesspoints')
     access_point: so.Mapped['AccessPoint'] = so.relationship(back_populates='scans')
@@ -318,12 +329,15 @@ class ScanStation(Updateable, Model):
     __tablename__ = 'scan_stations'
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    scan_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('scans.id'))
-    station_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('stations.id'))
+    scan_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey('scans.id', ondelete='CASCADE')
+    )
+    station_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey('stations.id', ondelete='CASCADE')
+    )
 
     scan: so.Mapped['Scan'] = so.relationship(back_populates='scan_stations')
     station: so.Mapped['Station'] = so.relationship(back_populates='scans')
-
     first_seen: so.Mapped[datetime]
     last_seen: so.Mapped[datetime]
     power: so.Mapped[int]
