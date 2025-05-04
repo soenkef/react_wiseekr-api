@@ -369,6 +369,7 @@ class Setting(Updateable, Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
     force_connect: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
     created_at: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow)
+    is_active: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
 
     @property
     def password(self):

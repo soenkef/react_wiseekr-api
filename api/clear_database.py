@@ -3,10 +3,15 @@ from api.app import db
 from sqlalchemy import text
 import os, shutil
 from api.scan_import import SCAN_FOLDER
+from apifairy import authenticate
+from api.auth import token_auth
 
 clear_db = Blueprint('clear_db', __name__)
 
+# TODO: Do better handling of the delete operation - this is a bit risky
+
 @clear_db.route('/clear_db', methods=['POST'])
+@authenticate(token_auth)
 def clear_database():
     try:
         # --- 1) Datenbank leeren ---

@@ -60,7 +60,10 @@ def trigger_import():
 def get_all_scans():
     scans = db.session.query(Scan).order_by(Scan.id.desc()).all()
     return jsonify([
-        {"id": s.id, "filename": s.filename, "description": s.description,
+        {"id": s.id, 
+         "filename": s.filename, 
+         "description": s.description,
+         "location": s.location,
          "created_at": s.timestamp.strftime('%Y-%m-%d %H:%M:%S')} for s in scans
     ])
 
@@ -161,6 +164,15 @@ def get_scan_detail(scan_id):
     }
     if scan_output is not None:
         response["scan_output"] = scan_output
+    
+    # --- 8) Dateigröße der CSV hinzufügen ---
+    try:
+        filepath = os.path.join(SCAN_FOLDER, scan.filename)
+        # in Bytes
+        response["filesize"] = os.path.getsize(filepath)
+    except Exception:
+        # falls Datei nicht gefunden o.ä.
+        response["filesize"] = None
 
     return jsonify(response)
 
