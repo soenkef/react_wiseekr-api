@@ -103,7 +103,7 @@ def get_scan_detail(scan_id):
 
     # 4) Lade Deauth-Aktionen für Handshake-Dateien
     actions = db.session.query(DeauthAction).filter_by(scan_id=scan_id).all()
-    deauth_map = {a.mac: a.result_file for a in actions if a.result_file}
+    deauth_map = {a.mac: a.handshake_file for a in actions if a.handshake_file}
 
     # 5) Baue die Access Point–Map
     ap_map: dict[str, dict] = {}

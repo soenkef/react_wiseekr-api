@@ -114,14 +114,15 @@ def start_deauth():
         handshake_found = has_handshake(handshake_file)
         current_app.logger.info(f"Handshake-Datei {handshake_file}, gefunden: {handshake_found}")
 
-        # 5) Speichern
+        # 5) Speichern -> Doppelte Einträge vermeiden todo: lösche result_file oder handshake_file
         action = DeauthAction(
             scan_id=scan_id,
             mac=mac,
             is_client=is_client,
             packets=packets,
             duration=duration,
-            result_file=cap_prefix + '.cap' if handshake_found else None,
+            result_file=handshake_file if handshake_found else None,
+            handshake_file=handshake_file if handshake_found else None,
             success=handshake_found,
             started_at=datetime.utcnow()
         )
@@ -224,7 +225,8 @@ def start_deauth_client():
             is_client=True,
             packets=packets,
             duration=duration,
-            result_file=cap_prefix + '.cap' if handshake_found else None,
+            result_file=handshake_file if handshake_found else None,
+            handshake_file=handshake_file if handshake_found else None,
             success=handshake_found,
             started_at=datetime.utcnow()
         )
