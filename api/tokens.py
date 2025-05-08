@@ -21,17 +21,18 @@ oauth2_schema = OAuth2Schema()
 def token_response(token):
     headers = {}
     if current_app.config['REFRESH_TOKEN_IN_COOKIE']:
-        samesite = 'strict'
+        samesite = 'None'
         if current_app.config['USE_CORS']:  # pragma: no branch
-            samesite = 'none' if not current_app.debug else 'lax'
+            samesite = 'None'
         headers['Set-Cookie'] = dump_cookie(
             'refresh_token', token.refresh_token,
-            path=url_for('tokens.new'), secure=not current_app.debug,
-            httponly=True, samesite=samesite)
+            path=url_for('tokens.new'), 
+            secure=True,  # Use secure to comply with SameSite=None
+            httponly=True, 
+            samesite=samesite)
     return {
         'access_token': token.access_token_jwt,
-        'refresh_token': token.refresh_token
-        if current_app.config['REFRESH_TOKEN_IN_BODY'] else None,
+        'refresh_token': token.refresh_token if current_app.config['REFRESH_TOKEN_IN_BODY'] else None,
     }, 200, headers
 
 
