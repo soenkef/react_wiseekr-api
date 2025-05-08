@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 INTERFACE="$1"
 FILENAME="$2"
 TARGET_BSSID="$3"
@@ -48,11 +46,11 @@ if [ -n "$CHANNEL" ]; then
   CHAN_ARG="-c $CHANNEL"
 fi
 
-FULL_PATH="$SCANS_DIR/$FILENAME"
-echo "FULL_PATH: " $FULL_PATH
+echo "[i] Setze Interface $INTERFACE auf Kanal $CHANNEL"
+echo "$SECRET" | sudo -S iwconfig "$INTERFACE" channel "$CHANNEL"
 
 
-echo $SECRET | sudo -S timeout $DURATION \
+echo $SECRET | sudo -S timeout "$DURATION" \
   airodump-ng --band abg $CHAN_ARG $BSSID_ARG \
     --write-interval 1 \
     -w "$FULL_PATH" "$INTERFACE"

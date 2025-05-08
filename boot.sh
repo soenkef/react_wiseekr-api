@@ -17,6 +17,7 @@ flask db migrate -m "Autogen" || true
 
 echo "📦 Führe Migration aus..."
 flask db stamp head
+flask db stamp base
 flask db migrate -m "Initial"
 flask db upgrade
 

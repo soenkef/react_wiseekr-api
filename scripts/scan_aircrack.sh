@@ -1,6 +1,9 @@
 #!/bin/bash
 
-INTERFACE="wlan0"
+
+set -x
+
+INTERFACE="wlan1"
 SCANS_DIR="scans"
 DURATION="$1"
 SECRET="$2"
@@ -10,8 +13,13 @@ FULL_PATH="$SCANS_DIR/$FILENAME.csv"
 
 echo "Uebergebene Duration/timeout-Werte: " $DURATION
 
-# Stelle sicher, dass das Scan-Verzeichnis existiert
-mkdir -p "$SCANS_DIR"
+# Prüfen, ob das Verzeichnis existiert, und bei Bedarf erstellen
+if [ ! -d "$SCANS_DIR" ]; then
+    mkdir -p "$SCANS_DIR"
+    echo "Verzeichnis »$SCANS_DIR« wurde erstellt."
+else
+    echo "Verzeichnis »$SCANS_DIR« existiert bereits."
+fi
 
 # Prüfe ob das Interface vorhanden ist
 if ! ip link show "$INTERFACE" > /dev/null 2>&1; then

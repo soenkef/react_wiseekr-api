@@ -8,8 +8,7 @@ from flask import Blueprint, jsonify, current_app, request
 from flask_cors import cross_origin
 from sqlalchemy.exc import OperationalError
 from api.app import db
-from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation
-from netaddr import EUI, NotRegisteredError
+from api.models import Scan, AccessPoint, Station, ScanAccessPoint, ScanStation, DeauthAction, Setting
 from dotenv import load_dotenv
 from sqlalchemy.orm import joinedload
 from api.utils.oui import OUI_MAP
@@ -60,19 +59,22 @@ def trigger_import():
 def get_all_scans():
     scans = db.session.query(Scan).order_by(Scan.id.desc()).all()
     return jsonify([
-        {"id": s.id, "filename": s.filename, "description": s.description,
+        {"id": s.id, 
+         "filename": s.filename, 
+         "description": s.description,
+         "location": s.location,
          "created_at": s.timestamp.strftime('%Y-%m-%d %H:%M:%S')} for s in scans
     ])
 
 @scan_data.route('/scans/<int:scan_id>', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def get_scan_detail(scan_id):
-    # Lade den Scan in der DB
+    # 1) Lade den Scan
     scan = db.session.get(Scan, scan_id)
     if not scan:
         return jsonify({'error': 'Scan not found'}), 404
 
-    # Optional: gezielten Scan eines AccessPoint über BSSID und Channel ausführen
+    # 2) Optional: gezielten Einzel-Scan ausführen
     target_bssid = request.args.get('bssid')
     target_channel = request.args.get('channel')
     scan_output = None
@@ -93,7 +95,7 @@ def get_scan_detail(scan_id):
         except Exception as e:
             scan_output = f"Fehler beim gezielten Scan: {e}"
 
-    # Hole alle AccessPoints und Stationen aus dem Scan
+    # 3) Hole alle AccessPoints & Stations
     aps = db.session.query(ScanAccessPoint).options(
         joinedload(ScanAccessPoint.access_point)
     ).filter_by(scan_id=scan_id).all()
@@ -101,8 +103,12 @@ def get_scan_detail(scan_id):
         joinedload(ScanStation.station)
     ).filter_by(scan_id=scan_id).all()
 
-    # Mappe die Ergebnisse
-    ap_map = {}
+    # 4) Lade Deauth-Aktionen für Handshake-Dateien
+    actions = db.session.query(DeauthAction).filter_by(scan_id=scan_id).all()
+    deauth_map = {a.mac: a.handshake_file for a in actions if a.handshake_file}
+
+    # 5) Baue die Access Point–Map
+    ap_map: dict[str, dict] = {}
     for ap in aps:
         ap_map[ap.access_point.bssid] = {
             "bssid": ap.access_point.bssid,
@@ -122,9 +128,11 @@ def get_scan_detail(scan_id):
             "lan_ip": ap.lan_ip,
             "id_length": ap.id_length,
             "key": ap.key,
-            "clients": []
+            "clients": [],
+            "handshake_file": deauth_map.get(ap.access_point.bssid)
         }
 
+    # 6) Verteile die Stations auf APs oder unlinked
     unlinked = []
     for st in stations:
         client = {
@@ -134,14 +142,15 @@ def get_scan_detail(scan_id):
             "power": st.power,
             "first_seen": st.first_seen,
             "last_seen": st.last_seen,
-            "probed_essids": st.probed_essids
+            "probed_essids": st.probed_essids,
+            "handshake_file": deauth_map.get(st.station.mac)
         }
         if st.bssid and st.bssid in ap_map:
             ap_map[st.bssid]["clients"].append(client)
         else:
             unlinked.append(client)
 
-    # Baue die Antwort
+    # 7) Baue und sende die Antwort
     response = {
         "id": scan.id,
         "filename": scan.filename,
@@ -154,6 +163,15 @@ def get_scan_detail(scan_id):
     }
     if scan_output is not None:
         response["scan_output"] = scan_output
+    
+    # --- 8) Dateigröße der CSV hinzufügen ---
+    try:
+        filepath = os.path.join(SCAN_FOLDER, scan.filename)
+        # in Bytes
+        response["filesize"] = os.path.getsize(filepath)
+    except Exception:
+        # falls Datei nicht gefunden o.ä.
+        response["filesize"] = None
 
     return jsonify(response)
 
@@ -259,3 +277,34 @@ def import_all_scans(description=None, duration=None, location=None):
         db.session.bulk_insert_mappings(ScanStation, all_sst)
 
     db.session.commit()
+
+
+@scan_data.route('/scans/<int:scan_id>', methods=['DELETE'])
+def delete_scan(scan_id):
+    """Löscht einen Scan mitsamt allen zugehörigen Daten und der CSV-Datei."""
+    scan = db.session.get(Scan, scan_id)
+    if not scan:
+        return jsonify({'error': 'Scan nicht gefunden'}), 404
+
+    try:
+        # 1) Alle zugehörigen DeauthAction-, ScanAccessPoint- und ScanStation-Einträge löschen
+        db.session.query(DeauthAction).filter_by(scan_id=scan_id).delete()
+        db.session.query(ScanAccessPoint).filter_by(scan_id=scan_id).delete()
+        db.session.query(ScanStation).filter_by(scan_id=scan_id).delete()
+
+        # 2) Scan-Eintrag löschen
+        filename = scan.filename
+        db.session.delete(scan)
+        db.session.commit()
+
+        # 3) CSV-Datei vom Filesystem entfernen
+        filepath = os.path.join(SCAN_FOLDER, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+        return jsonify({'message': 'Scan und alle zugehörigen Daten gelöscht.'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Fehler beim Löschen des Scans: {e}")
+        return jsonify({'error': str(e)}), 500

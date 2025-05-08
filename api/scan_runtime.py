@@ -5,7 +5,6 @@ import os
 from api.scan_import import SCAN_FOLDER
 import time
 from flask import request
-from dotenv import load_dotenv
 from subprocess import TimeoutExpired
 
 scan_runtime = Blueprint('scan_runtime', __name__)

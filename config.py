@@ -77,6 +77,9 @@ class Config:
                                        'donotreply@wiseekr.example.com')
 
     USE_CORS = True
+    
+    # WIFI Interface
+    DEAUTH_INTERFACE=os.environ.get('DEAUTH_INTERFACE')
 
     # Secret
     SUDO_SECRET = os.environ.get('SUDO_SECRET')
