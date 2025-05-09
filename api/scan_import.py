@@ -47,24 +47,80 @@ scan_data = Blueprint('scan_data', __name__)
 @scan_data.route('/scans/import', methods=['POST', 'OPTIONS'])
 @cross_origin()
 def trigger_import():
+    # CORS preflight
+    if current_app.request.method == 'OPTIONS':
+        return '', 200
+
+    # 1) Prüfen, ob bereits ein Scan läuft
+    running = db.session.query(Scan).filter_by(is_active=True).first()
+    if running:
+        return jsonify({"error": "Ein Scan läuft bereits (ID: %d)." % running.id}), 400
+
+    # 2) Markiere global „Scan läuft“
+    #    – hier könnte man auch eine eigene Status-Tabelle nehmen, 
+    #      wir schreiben es direkt in den neuen Scan-Datensatz.
     try:
-        import_all_scans()
-        return jsonify({"message": "Import abgeschlossen."}), 200
+        # Starte Import/Scan und erhalte die neuen Scan-Objekte zurück
+        new_scans = import_all_scans(return_scans=True)
+        # import_all_scans sollte dann in seinen Insert-Flows am Scan-Objekt
+        # `scan.is_active = True` setzen, bevor es `db.session.commit()` tut.
+
+        # --- Beispiel, falls import_all_scans nur scan-IDs zurückgibt: ---
+        for scan in new_scans:
+            scan.is_active = True
+            db.session.add(scan)
+        db.session.commit()
+
+        # 3) Hier führst du tatsächlichen Scan durch (z.B. Shell-Skript), 
+        #    oder bei reinen CSV-Importen ist dieser Schritt schon erledigt.
+
+        # 4) Nach Abschluss alle neuen Scans freigeben
+        for scan in new_scans:
+            scan.is_active = False
+            db.session.add(scan)
+        db.session.commit()
+
+        return jsonify({"message": "Import/Scan abgeschlossen."}), 200
+
     except OperationalError as e:
+        # bei DB-Fehlern ebenfalls freigeben
+        for scan in new_scans:
+            scan.is_active = False
+            db.session.add(scan)
+        db.session.commit()
+        current_app.logger.error(f"DB-Error beim Import: {e}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        # alles andere auch freigeben und zurückrollen
         db.session.rollback()
+        current_app.logger.error(f"Fehler beim Import: {e}")
         return jsonify({"error": str(e)}), 500
 
 @scan_data.route('/scans', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def get_all_scans():
     scans = db.session.query(Scan).order_by(Scan.id.desc()).all()
-    return jsonify([
-        {"id": s.id, 
-         "filename": s.filename, 
-         "description": s.description,
-         "location": s.location,
-         "created_at": s.timestamp.strftime('%Y-%m-%d %H:%M:%S')} for s in scans
-    ])
+    # Debug-Log: wie viele AP-Einträge gibt es insgesamt?
+    #total_aps = db.session.query(ScanAccessPoint).count()
+    #current_app.logger.debug(f"⭐️ Insgesamt {total_aps} ScanAccessPoint-Datensätze in der DB")
+
+    result = []
+    for s in scans:
+        # Anzahl der AccessPoints ermitteln
+        ap_count = db.session.query(ScanAccessPoint) \
+            .filter_by(scan_id=s.id) \
+            .count()
+        #current_app.logger.debug(f"🔍 Scan {s.id} => {ap_count} APs")
+        
+        result.append({
+            "id": s.id,
+            "filename": s.filename,
+            "description": s.description,
+            "location": s.location,
+            "created_at": s.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            "access_points_count": ap_count
+        })
+    return jsonify(result)
 
 @scan_data.route('/scans/<int:scan_id>', methods=['GET', 'OPTIONS'])
 @cross_origin()
@@ -177,8 +233,6 @@ def get_scan_detail(scan_id):
 
 # Import-Funktion mit Bulk-Inserts und lokalem Vendor-Lookup
 def import_all_scans(description=None, duration=None, location=None):
-    print("Duration: " + str(duration))
-    print("Importiere alle Scans...")
 
     # Bereits verarbeitete Dateien ermitteln
     processed = {fname for (fname,) in db.session.query(Scan.filename).all() if fname}

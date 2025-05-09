@@ -1,8 +1,8 @@
-"""add location and duration to scans table
+"""nach upgrade
 
-Revision ID: 15708a5d4d75
+Revision ID: 976eb80f973b
 Revises: 
-Create Date: 2025-04-29 09:40:37.529222
+Create Date: 2025-05-08 20:55:16.689188
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '15708a5d4d75'
+revision = '976eb80f973b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,6 +25,15 @@ def upgrade():
     sa.Column('location', sa.String(length=128), nullable=True),
     sa.Column('description', sa.String(length=256), nullable=True),
     sa.Column('filename', sa.String(length=32), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('settings',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('ssid', sa.String(length=128), nullable=False),
+    sa.Column('password_hash', sa.String(length=256), nullable=True),
+    sa.Column('force_connect', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('stations',
@@ -59,6 +68,7 @@ def upgrade():
     sa.Column('is_camera', sa.Boolean(), nullable=False),
     sa.Column('counter', sa.Integer(), nullable=False),
     sa.Column('cracked_password', sa.String(length=128), nullable=True),
+    sa.Column('handshake_file', sa.String(length=256), nullable=True),
     sa.Column('scan_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['scan_id'], ['scans.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -77,6 +87,7 @@ def upgrade():
     sa.Column('packets', sa.Integer(), nullable=False),
     sa.Column('result_file', sa.String(length=255), nullable=True),
     sa.Column('success', sa.Boolean(), nullable=False),
+    sa.Column('handshake_file', sa.String(length=255), nullable=True),
     sa.ForeignKeyConstraint(['scan_id'], ['scans.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -109,8 +120,8 @@ def upgrade():
     sa.Column('packets', sa.Integer(), nullable=False),
     sa.Column('bssid', sa.String(length=17), nullable=True),
     sa.Column('probed_essids', sa.Text(), nullable=True),
-    sa.ForeignKeyConstraint(['scan_id'], ['scans.id'], ),
-    sa.ForeignKeyConstraint(['station_id'], ['stations.id'], ),
+    sa.ForeignKeyConstraint(['scan_id'], ['scans.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['station_id'], ['stations.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('tokens',
@@ -145,8 +156,8 @@ def upgrade():
     sa.Column('lan_ip', sa.String(length=45), nullable=True),
     sa.Column('id_length', sa.Integer(), nullable=False),
     sa.Column('key', sa.String(length=256), nullable=True),
-    sa.ForeignKeyConstraint(['access_point_id'], ['access_points.id'], ),
-    sa.ForeignKeyConstraint(['scan_id'], ['scans.id'], ),
+    sa.ForeignKeyConstraint(['access_point_id'], ['access_points.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['scan_id'], ['scans.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
@@ -183,5 +194,6 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_stations_mac'))
 
     op.drop_table('stations')
+    op.drop_table('settings')
     op.drop_table('scans')
     # ### end Alembic commands ###
