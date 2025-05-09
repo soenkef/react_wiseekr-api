@@ -24,11 +24,12 @@ def token_response(token):
         samesite = 'None'
         if current_app.config['USE_CORS']:  # pragma: no branch
             samesite = 'None'
+        secure_flag = current_app.config.get('ENV') == 'production'
         headers['Set-Cookie'] = dump_cookie(
             'refresh_token', token.refresh_token,
-            path=url_for('tokens.new'), 
-            secure=True,  # Use secure to comply with SameSite=None
-            httponly=True, 
+            path=url_for('tokens.new'),
+            secure=secure_flag,
+            httponly=True,
             samesite=samesite)
     return {
         'access_token': token.access_token_jwt,

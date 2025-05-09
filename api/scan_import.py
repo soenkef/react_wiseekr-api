@@ -45,7 +45,7 @@ def get_vendor_and_camera_info(mac: str) -> tuple[str | None, bool]:
 scan_data = Blueprint('scan_data', __name__)
 
 @scan_data.route('/scans/import', methods=['POST', 'OPTIONS'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
 def trigger_import():
     # CORS preflight
     if current_app.request.method == 'OPTIONS':
@@ -97,7 +97,7 @@ def trigger_import():
         return jsonify({"error": str(e)}), 500
 
 @scan_data.route('/scans', methods=['GET', 'OPTIONS'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
 def get_all_scans():
     scans = db.session.query(Scan).order_by(Scan.id.desc()).all()
     # Debug-Log: wie viele AP-Einträge gibt es insgesamt?
@@ -123,7 +123,7 @@ def get_all_scans():
     return jsonify(result)
 
 @scan_data.route('/scans/<int:scan_id>', methods=['GET', 'OPTIONS'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
 def get_scan_detail(scan_id):
     # 1) Lade den Scan
     scan = db.session.get(Scan, scan_id)

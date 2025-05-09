@@ -28,7 +28,8 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)  # Flask-Migrate initialisieren
 
     if app.config['USE_CORS']:  # pragma: no branch
-        cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
+        cors.init_app(app, resources={r"/api/*": {"origins": "*"}}, 
+                      supports_credentials=True)
     mail.init_app(app)
     apifairy.init_app(app)
 
