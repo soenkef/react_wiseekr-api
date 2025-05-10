@@ -33,9 +33,13 @@ def download_file(scan_id):
     )
     
 
-@download_file_bp.route('/scans/file/<path:filename>', methods=['GET', 'OPTIONS'])
+@download_file_bp.route('/scans/<int:scan_id>/file/<path:filename>', methods=['GET', 'OPTIONS'])
 @cross_origin()
-def download_file_by_name(filename):
+def download_file_by_name(scan_id, filename):
+    
+    scan = db.session.query(Scan).get(scan_id)
+    if not scan or not scan.filename:
+        return jsonify({'error': 'Datei nicht gefunden'}), 404
     """
     Glaubt nur dem reinen Dateinamen (basename),
     sucht dann in SCAN_FOLDER danach und liefert es aus.
@@ -48,6 +52,7 @@ def download_file_by_name(filename):
     # Nur den Basename verwenden – so schummeln wir alle Verzeichnispfade weg
     fn = os.path.basename(filename)
     file_path = os.path.join(scan_dir, fn)
+    print(file_path)
     current_app.logger.debug(f"Download versucht: {file_path}")
 
     if not os.path.isfile(file_path):
