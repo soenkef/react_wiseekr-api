@@ -44,7 +44,15 @@ def scan_single_ap(scan_id):
         return jsonify({'error': 'Scan nicht gefunden'}), 404
 
     # Bestimme Dauer und SUDO_SECRET
-    duration = scan.duration or current_app.config.get('DEFAULT_SCAN_DURATION', 60)
+    # Bestimme Dauer und SUDO_SECRET
+    # Zuerst aus dem Request, falls vorhanden, sonst aus scan.duration, sonst Default
+    default_duration = current_app.config.get('DEFAULT_SCAN_DURATION', 60)
+    req_dur = data.get('duration')
+    try:
+        duration = int(req_dur) if req_dur is not None else (scan.duration or default_duration)
+    except (ValueError, TypeError):
+        duration = scan.duration or default_duration    
+        
     secret   = current_app.config.get('SUDO_SECRET', '')
 
     # Baue Kommando

@@ -94,3 +94,6 @@ class Config:
         os.path.join(basedir, 'uploads')
     SCAN_FOLDER = os.environ.get('SCAN_FOLDER') or \
         os.path.join(basedir, 'scans')
+    
+    # scan duration
+    DEFAULT_SCAN_DURATION = int(os.environ.get('DEFAULT_SCAN_DURATION') or '60')
