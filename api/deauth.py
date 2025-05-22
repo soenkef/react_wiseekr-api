@@ -133,7 +133,7 @@ def start_deauth():
             'message': 'Deauth abgeschlossen',
             'mac': mac,
             'success': handshake_found,
-            'file': cap_prefix + '.cap' if handshake_found else None
+            'file': handshake_file if handshake_found else None
         }), 200
 
     except Exception as e:
@@ -185,6 +185,9 @@ def start_deauth_client():
                 str(channel),
                 secret
             ]
+
+            current_app.logger.info(f"Command: {hs_cmd}")
+            # Handshake-Mitschnitt starten
             handshake_proc = subprocess.Popen(hs_cmd,
                                               stdout=subprocess.DEVNULL,
                                               stderr=subprocess.DEVNULL)
@@ -238,7 +241,7 @@ def start_deauth_client():
             'ap_mac': ap_mac,
             'client_mac': client_mac,
             'success': handshake_found,
-            'file': cap_prefix + '.cap' if handshake_found else None
+            'file': handshake_file if handshake_found else None
         }), 200
 
     except Exception as e:

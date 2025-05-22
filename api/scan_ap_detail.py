@@ -121,17 +121,14 @@ def _import_single_ap(scan_id: int, bssid: str) -> None:
         db.session.add(ap)
         db.session.flush()
 
-    # Alte Einträge löschen (nur für diesen AP)
-    db.session.query(ScanAccessPoint).filter_by(
-        scan_id=scan_id,
-        access_point_id=ap.id
-    ).delete()
-
-    # Nur die Station-Zeilen entfernen, die wirklich diesem Access Point (bssid) gehören
-    db.session.query(ScanStation).filter_by(
-        scan_id=scan_id,
-        bssid=bssid
-    ).delete()
+    # --- NEU: Existierende Stations ermitteln, um Duplikate zu vermeiden ---
+    existing_macs = {
+        st.mac for st in
+        db.session.query(Station.mac)
+          .join(ScanStation, Station.id == ScanStation.station_id)
+          .filter(ScanStation.scan_id == scan_id, ScanStation.bssid == bssid)
+          .all()
+    }
 
     sap_rows = []
     sst_rows = []
@@ -149,12 +146,15 @@ def _import_single_ap(scan_id: int, bssid: str) -> None:
                 continue
 
             if ap_mode:
+                # AccessPoint-Metadaten updaten
                 if header == 'bssid':
                     continue
                 vendor, is_cam = get_vendor_and_camera_info(row[0].strip())
                 ap.manufacturer = vendor
                 ap.is_camera = is_cam
 
+                # Wir ersetzen das alte SAP-Row-Set komplett,
+                # damit alle AP-Felder frisch geschrieben werden.
                 sap_rows.append({
                     'scan_id': scan_id,
                     'access_point_id': ap.id,
@@ -175,7 +175,11 @@ def _import_single_ap(scan_id: int, bssid: str) -> None:
             else:
                 if header == 'station mac':
                     continue
-                mac = row[0].strip()
+                mac = row[0].strip().upper()
+                # bereits importierte Station überspringen
+                if mac in existing_macs:
+                    continue
+
                 vendor, is_cam = get_vendor_and_camera_info(mac)
                 station = db.session.scalar(Station.select().filter_by(mac=mac))
                 if station:
@@ -193,13 +197,21 @@ def _import_single_ap(scan_id: int, bssid: str) -> None:
                     'last_seen': parse_datetime(row[2]),
                     'power': int(row[3] or 0),
                     'packets': int(row[4] or 0),
-                    'bssid': row[5].strip() or None,
+                    'bssid': bssid,
                     'probed_essids': ', '.join(row[6:]).strip() or None
                 })
 
-    # Bulk-Insert
+    # Alte SAP-Einträge für diesen AP komplett ersetzen
+    db.session.query(ScanAccessPoint).filter_by(
+        scan_id=scan_id,
+        access_point_id=ap.id
+    ).delete()
+
+    # Bulk-Insert für AccessPoint-Daten
     if sap_rows:
         db.session.bulk_insert_mappings(ScanAccessPoint, sap_rows)
+
+    # Nur die **neuen** Stations hinzufügen
     if sst_rows:
         db.session.bulk_insert_mappings(ScanStation, sst_rows)
 
