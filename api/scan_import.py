@@ -362,3 +362,29 @@ def delete_scan(scan_id):
         db.session.rollback()
         current_app.logger.error(f"Fehler beim Löschen des Scans: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+
+@scan_data.route('/scans/<int:scan_id>', methods=['PUT'])
+@cross_origin()
+def update_scan(scan_id):
+    """
+    Aktualisiert description und/or location eines existierenden Scans.
+    """
+    data = request.get_json() or {}
+    scan = db.session.get(Scan, scan_id)
+    if not scan:
+        return jsonify({'error': 'Scan nicht gefunden'}), 404
+
+    # Nur description und location updaten, falls sie im Payload stehen
+    if 'description' in data:
+        scan.description = data['description']
+    if 'location' in data:
+        scan.location = data['location']
+
+    db.session.commit()
+    return jsonify({
+        'id': scan.id,
+        'description': scan.description,
+        'location': scan.location
+    }), 200
