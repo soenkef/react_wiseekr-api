@@ -79,7 +79,7 @@ class Config:
     USE_CORS = True
     
     # WIFI Interface
-    DEAUTH_INTERFACE=os.environ.get('DEAUTH_INTERFACE')
+    DEAUTH_INTERFACE=os.environ.get('DEAUTH_INTERFACE' or "wlan1")
 
     # Secret
     SUDO_SECRET = os.environ.get('SUDO_SECRET')
